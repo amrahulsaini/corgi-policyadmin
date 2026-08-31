@@ -75,7 +75,7 @@ export async function issuePolicy(input: IssueInput): Promise<IssueResult> {
               ${input.limitMinor.toString()}::bigint,
               ${input.deductibleMinor.toString()}::bigint,
               ${rating.annualPremiumMinor.toString()}::bigint,
-              ${JSON.stringify(input.exposures)}::jsonb,
+              ${sql.json(input.exposures)}::jsonb,
               ${`Policy issued for the term ${input.termStart} to ${termEnd}`}, ${input.actor})
       returning id
     `;
@@ -110,7 +110,7 @@ export async function issuePolicy(input: IssueInput): Promise<IssueResult> {
     await tx`
       insert into decision_events (actor, action, subject, detail)
       values (${input.actor}, 'policy.issued', ${policyNumber},
-              ${JSON.stringify({
+              ${sql.json({
                 rating: rating.components.map((c) => ({
                   label: c.label,
                   amount: c.amountMinor.toString(),

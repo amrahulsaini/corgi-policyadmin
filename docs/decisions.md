@@ -154,3 +154,76 @@ approved, one unverified — so the blocked path has somewhere to be shown.
 union so every service function accepts either a pool or a transaction, which is what lets issuance,
 endorsement and correction all compose inside one atomic unit later. `bigint` parameters are passed as
 strings with an explicit `::bigint` cast rather than relying on driver coercion.
+
+## T+03:40 — Stripe wired, and the webhook endpoint created through the API
+
+The dashboard's new Workbench buries webhook creation, so the endpoint was created with a `POST` to
+`/v1/webhook_endpoints`, which returns the signing secret directly. Subscribed to
+`payment_intent.succeeded`, `payment_intent.payment_failed`, `charge.refunded`,
+`charge.dispute.created` and `checkout.session.completed`. `livemode: false` confirmed on the
+endpoint object.
+
+`lib/stripe.ts` throws at construction if the key starts with `sk_live`. A live key cannot start this
+application even by accident.
+
+## T+03:50 — Two layers of idempotency, not one
+
+`webhook_events` has a unique index on `(provider, provider_event_id)`, so a replayed delivery is
+recognised before any work happens and returns `{ duplicate: true }`.
+
+Underneath that, every posting carries a `posting_key` that is unique in `journal_entries`, so even a
+consumer bug that got past the first guard cannot post the same money twice. `ledger_post` returns
+the existing entry id rather than raising, which makes the whole path safely re-runnable.
+
+The second layer is not redundant. The first is keyed on the provider's event identity, the second on
+the business meaning of the entry — a different provider event that means the same money movement is
+still stopped.
+
+## T+03:55 — Money moved end to end on a real rail
+
+Bound `CGL-CA-100002` for a 2026-08-31 inception. Premium $6,230.40, California surcharges $223.91,
+total $6,454.31. Created and confirmed a Stripe test payment intent for exactly that amount.
+
+Stripe delivered `payment_intent.succeeded` to the deployed endpoint, the signature verified, and the
+consumer posted `premium.collected`. Resulting balances:
+
+```
+1000 Cash at processor          645431
+2000 Unearned premium           623040
+2100 Surplus lines tax payable   18766
+2110 Stamping fee payable         1125
+2200 Commission payable          93456
+4100 Policy fee income            2500
+5000 Commission expense          93456
+```
+
+Premium receivable nets to zero — debited at issuance, cleared on collection. Surplus lines tax is
+3.00% of premium plus policy fee, floored. The stamping fee is 0.18% of the same base, floored.
+Commission is 15% of collected premium, which is the choice recorded below.
+
+Replayed the same event twice with a valid recomputed signature: both returned `duplicate: true`,
+the entry count stayed at two and cash did not move. A forged signature was rejected with a 400 and
+recorded with `signature_valid = false`, so rejected deliveries are still auditable.
+
+This satisfies the T+24h checkpoint at roughly T+4h.
+
+## T+04:00 — Commission is earned on collected premium
+
+Booked when cash arrives, not when the policy is written. Two reasons. It matches when the money
+actually moved, which makes the broker statement tie to cash rather than to intent. And clawback
+becomes symmetric: if premium refunds, commission reverses against the same account it was credited
+to, with no receivable to chase from a broker who was paid on business that never funded.
+
+The cost is that a bound-but-unpaid policy shows no commission expense, which understates what the
+broker will eventually earn. That is the honest position, and the broker statement shows written and
+collected separately so the gap is visible rather than hidden.
+
+## T+04:05 — postgres.js needs its own JSON helper
+
+Passing `JSON.stringify(x)` with a `::jsonb` cast lands in Postgres as a JSON *scalar*, not an
+object, so `jsonb_array_length` failed on the posting lines. The driver's `sql.json()` helper is the
+correct path. Fixed in every place a jsonb parameter is passed, not only the one that broke — the
+others would have silently stored strings where objects were expected.
+
+The verified webhook body is stored as `sql.json(JSON.parse(raw))`, so what is kept is exactly what
+Stripe sent rather than a re-serialised copy.

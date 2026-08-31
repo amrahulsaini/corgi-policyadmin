@@ -65,7 +65,7 @@ export async function post(entry: EntryInput, tx: Db = defaultSql): Promise<stri
       ${entry.memo},
       ${entry.source},
       ${entry.postingKey},
-      ${JSON.stringify(lines)}::jsonb,
+      ${defaultSql.json(lines)}::jsonb,
       ${entry.sourceRef ?? null},
       ${entry.reversesEntryId ?? null}::uuid,
       ${entry.correctsEntryId ?? null}::uuid,
