@@ -1,4 +1,4 @@
-import type { Sql } from 'postgres';
+import type { Db } from '@/lib/db/types';
 import { sql as defaultSql } from '@/lib/db';
 import type { AccountCode } from './accounts';
 import type { IsoDate } from '@/lib/premium';
@@ -46,7 +46,7 @@ export function credit(
   return { accountCode, side: 'credit', amountMinor, ...dims };
 }
 
-export async function post(entry: EntryInput, tx: Sql = defaultSql): Promise<string> {
+export async function post(entry: EntryInput, tx: Db = defaultSql): Promise<string> {
   const lines = entry.lines
     .filter((l) => l.amountMinor !== 0n)
     .map((l) => ({
@@ -82,7 +82,7 @@ export async function post(entry: EntryInput, tx: Sql = defaultSql): Promise<str
 export async function reverse(
   entryId: string,
   opts: { effectiveDate?: IsoDate; memo: string; actor?: string; postingKey: string },
-  tx: Sql = defaultSql,
+  tx: Db = defaultSql,
 ): Promise<string> {
   const [original] = await tx<
     {
@@ -137,7 +137,7 @@ export async function reverse(
 export async function balance(
   accountCode: AccountCode,
   opts: { asOf?: IsoDate; knownAt?: Date } = {},
-  tx: Sql = defaultSql,
+  tx: Db = defaultSql,
 ): Promise<Minor> {
   const [row] = await tx<{ ledger_balance: bigint }[]>`
     select ledger_balance(${accountCode}, ${opts.asOf ?? null}::date, ${opts.knownAt ?? null}::timestamptz)

@@ -130,3 +130,27 @@ a money row here.
 
 `create-next-app` defaults to ES2017, which rejects `bigint` literals outright. Raising the target was
 the cheaper fix than giving up `bigint` for money, which was never on the table.
+
+## T+02:50 — Rating and taxes are data, not constants in a handler
+
+`lib/rating.ts` prices commercial general liability from base charge, limit at 42 bps per thousand,
+per-vehicle and per-square-foot exposure charges, a deductible credit, a filed state factor, and a
+filed minimum premium. Every component is returned with the basis it was computed from, so a quote
+can be explained line by line rather than asserted.
+
+The same discipline applies to `lib/tax.ts`. Flat fees are computed first, percentage rates apply to
+premium plus flat fees, and each surcharge carries its own ledger account and its own refundability
+flag. Changing California's stamping fee is a new row in `tax_rates`, not a redeploy.
+
+## T+02:55 — Two staff accounts in the seed, deliberately
+
+Maker-checker cannot be demonstrated with one staff login. The seed creates Dana and Marcus so the
+initiator and the approver are genuinely different people, and it creates two brokers — one KYB
+approved, one unverified — so the blocked path has somewhere to be shown.
+
+## T+03:00 — postgres.js transaction typing
+
+`sql.begin` hands the callback a `TransactionSql`, which is not assignable to `Sql`. Introduced a `Db`
+union so every service function accepts either a pool or a transaction, which is what lets issuance,
+endorsement and correction all compose inside one atomic unit later. `bigint` parameters are passed as
+strings with an explicit `::bigint` cast rather than relying on driver coercion.
