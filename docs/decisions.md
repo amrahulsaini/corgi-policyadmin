@@ -309,3 +309,112 @@ is worse than a queued event someone can look at.
 `startVerification` failing surfaces the provider error to the broker and leaves KYB where it was.
 The bind gate is a positive check for `approved`, so any failure mode — provider down, timeout,
 malformed response — degrades to refusing to bind rather than to allowing it.
+
+## T+06:30 — Cancellation, and what a negative premium layer buys
+
+Cancellation opens a layer over `[cancellation date, term end]` holding the negative of the unearned
+premium. At the cancellation date that layer has earned nothing, so earned premium is unchanged. At
+term end it is fully earned, exactly offsetting the remaining positive layers. Earned premium
+therefore freezes at the cancellation date and written premium drops immediately, without a single
+row being edited.
+
+Refund composition follows the tax model. Unearned premium comes back. The surplus lines tax and
+stamping fee come back in proportion to the returned premium. The $25 policy fee does not — it is
+marked non-refundable in `tax_rates` and is fully earned at inception. Commission claws back on the
+returned premium at the broker's rate, debiting commission payable against the same account it was
+credited to.
+
+Short rate is implemented at a flat 10% penalty, retained as earned premium. The ledger expresses
+both bases; only the filed table is simplified, and the cut list says so.
+
+The refund moves through `stripe.refunds.create` against the original payment intent, with an
+idempotency key on the policy. Verified: `re_3UAYsL…` returned `succeeded` for 482229 minor units.
+
+## T+06:40 — Cancelling with an open claim
+
+Live fire asks what happens to the refund, the commission and the reserve when a policy with an open
+claim is cancelled. The answer this system gives:
+
+- the refund is unearned premium and is unaffected by the claim — the customer paid for cover they
+  will not use, and a loss that already happened does not change that
+- commission claws back on the returned premium only, not on premium already earned
+- the reserve is untouched and the claim stays open
+
+Verified in `scripts/verify-loop.ts`: after cancellation the claim still reports open with its
+reserve intact. Cancelling cover going forward does not extinguish a loss that already occurred.
+
+## T+06:50 — Claims: the gates are in the service, not the screen
+
+`payClaim` refuses four ways: the claim must be open, the payee bank account must have verified, the
+payment cannot exceed the standing reserve, and paid plus the payment cannot exceed the occurrence
+limit in force **on the loss date** — not the current limit, which matters once an endorsement has
+raised it mid-term.
+
+A payment debits the reserve and credits claim payout clearing rather than cash. That clearing
+account is where a real rail attaches, and it means adding Increase or Moov later changes an adapter
+rather than the claim model.
+
+## T+07:00 — Bank verification compares the payee against the insured
+
+The requirement is to verify the account you pay into actually belongs to the claimant. The first
+implementation checked the payee name against a name the simulator invented, which verified nothing.
+Rewritten: the account belongs to the named insured, and the check is whether the payee agrees with
+that party. Typing a third-party payee fails and blocks payouts, which is the fraud this control
+exists to catch.
+
+Plaid sandbox is called when its keys are present; otherwise a labelled simulator answers behind the
+same interface. The payout gate cannot tell which responded, which is the test of whether the
+abstraction is real.
+
+## T+07:10 — The broker statement is derived, and reproducible
+
+The statement filters journal entries by `effective_date` inside the month and by `booked_at <= the
+close moment`. Re-running a closed month with the same close moment reproduces byte-identical
+figures, which the script asserts by comparing a SHA-256 fingerprint over the lines and totals.
+
+It ties by construction: the net due is compared against the commission payable movement on account
+2200 for the same broker and period, and the screen shows a "ties to the ledger" verdict rather than
+asking anyone to take it on trust.
+
+Note that a clawback effective in January does not appear in the August statement. That is correct —
+the statement is effective-dated, not booking-dated — and it is why written and collected are shown
+separately.
+
+## T+07:20 — Reconciliation compares provider truth to derived truth
+
+`runReconciliation` pulls succeeded payment intents from Stripe for the period and diffs them against
+`premium.collected` entries by `source_ref`. Three break kinds: at the provider and not here, here
+and not at the provider, and amounts disagreeing. Breaks carry aging.
+
+The first real run found a genuine orphan — a payment intent from an earlier smoke test whose policy
+had since been dropped by a database reset. That is exactly the class of break this is for, and it
+surfaced without being planted.
+
+## T+07:30 — The MCP surface, and the never-list
+
+Three read tools and one write tool at `/api/mcp`, JSON-RPC over HTTP, bearer token. `GET` returns
+the descriptor and the never-list without authentication, so the boundary is legible.
+
+`propose_endorsement` prices the change and files it in the human approval queue. It cannot post. The
+response says so in its first line, and the approval it creates is subject to the same database
+constraint as everyone else's — the agent can never be its own approver.
+
+`explain_balance` returns every line summing to an account with a running total and the provider
+reference behind each. It was written for an agent and turned out to be the answer to "where does
+this number come from", which is the question a person actually asks.
+
+## T+07:40 — Live fire as a screen, not a promise
+
+`/staff/live-fire` runs the panel's own scripted attacks as buttons: attempt UPDATE and DELETE on the
+journal, replay the last webhook with a recomputed valid signature while counting entries before and
+after, send a forged signature, plant a reconciliation break and correct it with a reversal, and
+force Stripe down.
+
+The outage switch is a database flag checked by every outbound Stripe path. With it on, binding,
+refunds and reconciliation refuse cleanly rather than half-writing, and turning it back off requires
+no replay because nothing was left in flight. Degrading toward refusing to transact is the safe
+direction for an insurer.
+
+Planting a break posts a real premium receipt against a provider reference that does not exist. It
+cannot be deleted afterwards — correcting it is a reversal, which is the honest demonstration of the
+whole thesis.

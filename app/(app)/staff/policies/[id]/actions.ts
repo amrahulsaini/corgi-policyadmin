@@ -8,6 +8,9 @@ import { applyEndorsement, priceEndorsement } from '@/lib/policy/endorse';
 import { correctEndorsementDate } from '@/lib/policy/correct';
 import type { Exposure } from '@/lib/rating';
 import { loadHeader } from '@/lib/policy/view';
+import { cancelPolicy, type CancelMethod } from '@/lib/policy/cancel';
+import { openClaim } from '@/lib/claims';
+import { verifyPayee } from '@/lib/bank/verify';
 
 export type ActionState = { error: string | null; notice: string | null };
 
@@ -130,5 +133,64 @@ export async function correct(_prev: ActionState, form: FormData): Promise<Actio
     };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Correction failed.', notice: null };
+  }
+}
+
+export async function cancel(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const user = await requireRole('staff');
+
+  const policyId = String(form.get('policyId') ?? '');
+  const effectiveDate = String(form.get('effectiveDate') ?? '');
+  const method = String(form.get('method') ?? 'pro_rata') as CancelMethod;
+  const reason = String(form.get('reason') ?? '').trim();
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(effectiveDate)) {
+    return { error: 'Give a valid cancellation date.', notice: null };
+  }
+  if (!reason) return { error: 'Record why the policy is being cancelled.', notice: null };
+
+  try {
+    const result = await cancelPolicy({ policyId, effectiveDate, method, reason, actor: user.email });
+    revalidatePath(`/staff/policies/${policyId}`);
+    return {
+      error: null,
+      notice: `Cancelled. Unearned ${format(result.quote.unearnedMinor)}${result.quote.penaltyMinor > 0n ? `, short-rate penalty ${format(result.quote.penaltyMinor)} retained` : ''}, tax returned ${format(result.quote.returnedTaxMinor)}, commission clawed back ${format(result.quote.commissionClawbackMinor)}. ${result.providerNote}`,
+    };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Cancellation failed.', notice: null };
+  }
+}
+
+export async function fileClaim(_prev: ActionState, form: FormData): Promise<ActionState> {
+  const user = await requireRole('staff');
+
+  const policyId = String(form.get('policyId') ?? '');
+  const lossDate = String(form.get('lossDate') ?? '');
+  const reportedDate = String(form.get('reportedDate') ?? '');
+  const description = String(form.get('description') ?? '').trim();
+  const reserve = String(form.get('reserve') ?? '');
+  const payeeName = String(form.get('payeeName') ?? '').trim();
+
+  if (!description) return { error: 'Describe the loss.', notice: null };
+  if (!payeeName) return { error: 'Name the payee.', notice: null };
+
+  try {
+    const opened = await openClaim({
+      policyId,
+      lossDate,
+      reportedDate,
+      description,
+      reserveMinor: minor(reserve),
+      payeeName,
+      actor: user.email,
+    });
+    const verification = await verifyPayee({ claimId: opened.claimId, payeeName });
+    revalidatePath(`/staff/policies/${policyId}`);
+    return {
+      error: null,
+      notice: `${opened.claimNumber} opened with a ${format(minor(reserve))} reserve. Bank verification via ${verification.provider}${verification.live ? ' (live)' : ' (simulated)'}: ${verification.nameMatches ? 'account holder matches, payouts unlocked' : 'name mismatch, payouts blocked'}.`,
+    };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Could not open the claim.', notice: null };
   }
 }

@@ -9,6 +9,9 @@ import { thresholdMinor } from '@/lib/approvals';
 import AsOfPicker from './as-of';
 import EndorseForm from './endorse-form';
 import CorrectForm from './correct-form';
+import CancelForm from './cancel-form';
+import ClaimForm from './claim-form';
+import { listClaims } from '@/lib/claims';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,6 +34,7 @@ export default async function PolicyDetail(props: {
   if (!view) notFound();
 
   const entries = await loadEntries(id);
+  const claims = await listClaims(id);
 
   const charges = await sql<
     { id: string; reason: string; total_minor: bigint; effective_date: string; status: string }[]
@@ -262,8 +266,106 @@ export default async function PolicyDetail(props: {
               candidates={correctable}
             />
           </section>
+
+          <section className="card overflow-hidden border-[var(--bad)]">
+            <div className="px-4 py-3 border-b rule">
+              <h2 className="font-semibold text-sm">Cancel mid-term</h2>
+              <p className="text-xs text-[var(--ink-soft)] mt-0.5">
+                The refund is unearned premium plus the tax that rides on it. The policy fee is fully
+                earned at inception and stays. Commission claws back on the returned premium.
+              </p>
+            </div>
+            <CancelForm policyId={id} termStart={header.termStart} termEnd={header.termEnd} />
+          </section>
         </>
       ) : null}
+
+      <section className="card overflow-hidden">
+        <div className="px-4 py-3 border-b rule">
+          <h2 className="font-semibold text-sm">Claims</h2>
+          <p className="text-xs text-[var(--ink-soft)] mt-0.5">
+            Incurred is paid plus outstanding reserve. Nothing pays past the occurrence limit in
+            force on the loss date.
+          </p>
+        </div>
+        {claims.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="grid">
+              <thead>
+                <tr>
+                  <th>Claim</th>
+                  <th>Loss date</th>
+                  <th>Status</th>
+                  <th>Payee</th>
+                  <th className="text-right">Reserve</th>
+                  <th className="text-right">Paid</th>
+                  <th className="text-right">Incurred</th>
+                  <th className="text-right">Limit left</th>
+                </tr>
+              </thead>
+              <tbody>
+                {claims.map((c) => (
+                  <tr key={c.id}>
+                    <td className="num font-medium">
+                      <Link href={`/staff/claims/${c.id}`} className="text-[var(--accent)] hover:underline">
+                        {c.claimNumber}
+                      </Link>
+                    </td>
+                    <td className="num">{c.lossDate}</td>
+                    <td>
+                      <span className={`chip ${c.status === 'open' ? 'chip-warn' : 'chip-mute'}`}>
+                        {c.status}
+                      </span>
+                    </td>
+                    <td>
+                      {c.payeeName}{' '}
+                      <span className={`chip ${c.payeeVerified ? 'chip-good' : 'chip-bad'}`}>
+                        {c.payeeVerified ? 'bank verified' : 'unverified'}
+                      </span>
+                    </td>
+                    <td className="num text-right">{format(c.reserveMinor)}</td>
+                    <td className="num text-right">{format(c.paidMinor)}</td>
+                    <td className="num text-right font-medium">{format(c.incurredMinor)}</td>
+                    <td className="num text-right text-[var(--ink-soft)]">
+                      {format(c.remainingLimitMinor)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+        {header.status === 'bound' || claims.length === 0 ? (
+          <ClaimForm
+            policyId={id}
+            termStart={header.termStart}
+            termEnd={header.termEnd}
+            insuredName={header.customerName}
+          />
+        ) : null}
+      </section>
+
+      <section className="card overflow-hidden">
+        <div className="px-4 py-3 border-b rule">
+          <h2 className="font-semibold text-sm">Documents</h2>
+          <p className="text-xs text-[var(--ink-soft)] mt-0.5">
+            Generated from the ledger at the date you choose, never transcribed.
+          </p>
+        </div>
+        <div className="px-4 py-4 flex flex-wrap items-center gap-3">
+          <a
+            href={`/api/documents/declarations/${id}?asOf=${asOf}`}
+            className="btn btn-ghost text-sm"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Declarations page as at {asOf}
+          </a>
+          <span className="text-xs text-[var(--ink-soft)]">
+            Change the as-of date above and the document changes with it.
+          </span>
+        </div>
+      </section>
 
       <section className="card overflow-hidden">
         <div className="px-4 py-3 border-b rule">

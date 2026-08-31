@@ -155,7 +155,7 @@ export async function applyRefundSettled(input: {
      where r.policy_id = ${link.policy_id}::uuid
        and not exists (
          select 1 from journal_entries e
-          where e.event_type = 'refund.settled' and e.source_ref = r.provider_ref
+          where e.posting_key = 'refund.settled:' || r.id::text
        )
      order by r.created_at
      limit 1

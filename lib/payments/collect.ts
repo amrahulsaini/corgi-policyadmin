@@ -3,6 +3,7 @@ import { stripe } from '@/lib/stripe';
 import type { Minor } from '@/lib/money';
 import type { IsoDate } from '@/lib/premium';
 import type { Surcharge } from '@/lib/tax';
+import { assertStripeUp } from '@/lib/ops';
 
 export type CollectInput = {
   policyId: string;
@@ -21,6 +22,8 @@ export type CollectResult = {
 };
 
 export async function createPremiumCheckout(input: CollectInput): Promise<CollectResult> {
+  await assertStripeUp();
+
   const surchargeTotal = input.surcharges.reduce((t, s) => t + s.amountMinor, 0n);
   const total = input.premiumMinor + surchargeTotal;
   if (total <= 0n) throw new Error('nothing to collect');
