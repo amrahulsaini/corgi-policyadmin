@@ -8,8 +8,7 @@ import { issuePolicy } from '@/lib/policy/issue';
 import { createPremiumCheckout } from '@/lib/payments/collect';
 import { surchargesFor } from '@/lib/tax';
 import type { Exposure } from '@/lib/rating';
-
-export const FILED_STATES = ['CA', 'TX', 'NY'];
+import { FILED_STATES } from './filed-states';
 
 export type QuoteState = { error: string | null };
 

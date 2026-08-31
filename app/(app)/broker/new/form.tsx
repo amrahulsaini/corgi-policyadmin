@@ -1,7 +1,8 @@
 'use client';
 
 import { useActionState, useState } from 'react';
-import { bindAndCollect, FILED_STATES, type QuoteState } from './actions';
+import { bindAndCollect, type QuoteState } from './actions';
+import { FILED_STATES } from './filed-states';
 
 const LIMITS = ['1000000.00', '2000000.00', '5000000.00'];
 const DEDUCTIBLES = ['1000.00', '2500.00', '5000.00', '10000.00'];
