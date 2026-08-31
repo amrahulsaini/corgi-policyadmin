@@ -104,3 +104,29 @@ the URL are in the US and latency is part of how a demo feels.
 
 Certificate issuance verified before any application code was deployed, so an SSL problem could never
 be discovered at hour forty.
+
+## T+02:10 — Deployed, with the immutability claim verified against the running database
+
+`https://corgi-policyadmin.35-193-160-200.nip.io` is live on Caddy with a Let's Encrypt certificate.
+`nip.io` accepts an arbitrary prefix in front of the encoded IP, so the host reads as a name rather
+than an address without buying a domain.
+
+Deployment is a tarball over `gcloud compute scp` rather than a git clone on the box, so no repository
+credential ever lives on the server. `deploy/deploy.sh` runs migrations, builds, and restarts in one
+command.
+
+Verified on the deployed database, not on a laptop:
+
+- `ledger_post` accepted a balanced entry and returned its id
+- `update journal_lines set amount_minor = 1` raised `ledger rows are append-only`
+- `delete from journal_entries` raised the same
+- an entry with debits 100 and credits 99 was refused by the posting function
+- `ledger_verify_chain()` returned the single entry as intact
+
+All four ran as the `postgres` superuser. Full database privileges do not buy you the ability to edit
+a money row here.
+
+## T+02:15 — TypeScript target raised to ES2022
+
+`create-next-app` defaults to ES2017, which rejects `bigint` literals outright. Raising the target was
+the cheaper fix than giving up `bigint` for money, which was never on the table.

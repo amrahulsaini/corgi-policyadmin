@@ -1,0 +1,18 @@
+corgi-policyadmin.35-193-160-200.nip.io, 35-193-160-200.nip.io {
+	encode zstd gzip
+
+	reverse_proxy 127.0.0.1:3000 {
+		health_uri /api/health
+		health_interval 10s
+		health_timeout 3s
+	}
+
+	handle_errors {
+		respond "Policy administration is restarting. The ledger is untouched; nothing was lost." 503
+	}
+
+	log {
+		output file /var/log/caddy/corgi.log
+		format console
+	}
+}

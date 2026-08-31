@@ -1,0 +1,18 @@
+[Unit]
+Description=Corgi policy administration
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=corgiapp
+WorkingDirectory=/srv/corgi
+EnvironmentFile=/srv/corgi/.env
+ExecStart=/usr/bin/node node_modules/next/dist/bin/next start -p 3000
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
