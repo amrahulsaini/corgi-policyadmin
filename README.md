@@ -21,14 +21,19 @@ Password for every account: `corgi-demo-2026`
 
 | Slot | Provider | Status | Evidence |
 | --- | --- | --- | --- |
-| Premium collection and refunds | Stripe test mode | **live** | Real API calls, real webhooks arriving at the deployed URL with verified signatures. `livemode: false` on every object. |
-| Broker KYB | Persona sandbox | pending wiring | Currently seeded; the gate itself is enforced in `issuePolicy`. |
-| Bank account verification | Plaid sandbox | pending wiring | |
-| Document generation | Local PDF generation | pending | |
-| Claim payout rail | Simulator behind a rail adapter | **simulated** | Deliberate: a rail is an adapter, not a schema. |
+| Premium collection and refunds | Stripe test mode | **LIVE** | Real API calls, real webhooks arriving at the deployed URL with verified signatures, real `stripe.refunds.create`. `livemode: false` on every object. |
+| Broker check | Persona sandbox | **LIVE** | Real inquiries (`inq_…`), real one-time links, HMAC-verified webhooks. Read the caveat below. |
+| Bank account verification | Plaid sandbox | **SIMULATED** | Labelled simulator by default; calls the live Plaid sandbox when `PLAID_CLIENT_ID` and `PLAID_SECRET` are set. One environment variable, no code change. |
+| Document generation | `pdfkit`, local | **REAL** | Declarations page and endorsement schedule generated from the ledger for any as-of date. |
+| Claim payout rail | Clearing account | **SIMULATED** | Deliberate: payments book to claim payout clearing, which is where a real rail attaches. A rail is an adapter, not a schema. |
 
 Nothing in this table is labelled live unless a real third-party sandbox is being called from the
 deployed system and returning real responses.
+
+**The Persona caveat.** Persona's sandbox trial tier offers KYC and AML inquiries — there is no
+business-verification product on it to call. The broker check therefore runs live against the agency
+principal rather than the entity. The integration is genuinely live; it is identity verification, not
+a registry lookup on the business. Production would use Middesk or Persona's KYB tier.
 
 ## Money handling
 
