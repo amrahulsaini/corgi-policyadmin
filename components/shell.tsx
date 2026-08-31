@@ -12,6 +12,7 @@ const NAV: Record<SessionUser['role'], { href: string; label: string }[]> = {
     { href: '/staff/reconciliation', label: 'Reconciliation' },
     { href: '/staff/brokers', label: 'Brokers' },
     { href: '/staff/live-fire', label: 'Live fire' },
+    { href: '/staff/db', label: 'Database' },
   ],
   broker: [
     { href: '/broker', label: 'Overview' },
