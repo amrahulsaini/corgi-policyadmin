@@ -432,3 +432,20 @@ rating engine that cannot find a filed factor should refuse to quote, not guess.
 This is exactly the class of bug the `basis` string on every rating component exists to catch: the
 number was plausible, the total was internally consistent, and nothing failed. What gave it away was
 recomputing the quote by hand and getting a different answer to the one the system produced.
+
+## T+09:40 — Adding an insured at bind time, and checking the brief before building it
+
+The quote form offered a dropdown of two seeded insureds, which reads as a demo rather than a system.
+Before building the alternative I re-read the brief: it never asks for customer onboarding. The v1
+scope lists a customer *portal*, not customer creation, and the core loop starts at issuance. The
+dropdown was compliant.
+
+Built it anyway, small: the select carries an extra option for a business not on file, which reveals
+legal name, contact email and risk state. An unrecognised state is refused by name rather than
+silently priced, because `rate()` throws for a state with no filed factor and the broker deserves to
+hear that in the form rather than as a failure after binding.
+
+Two details worth noting. The legal name is matched case-insensitively against existing customers, so
+binding twice for the same business does not create a duplicate. And the entity suffix strip that
+derives a short display name is anchored to the end of the string with word boundaries — an earlier
+version stripped `co` from anywhere, which would have turned "Corgi" into "rgi".

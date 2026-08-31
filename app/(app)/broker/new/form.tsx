@@ -1,7 +1,7 @@
 'use client';
 
-import { useActionState } from 'react';
-import { bindAndCollect, type QuoteState } from './actions';
+import { useActionState, useState } from 'react';
+import { bindAndCollect, FILED_STATES, type QuoteState } from './actions';
 
 const LIMITS = ['1000000.00', '2000000.00', '5000000.00'];
 const DEDUCTIBLES = ['1000.00', '2500.00', '5000.00', '10000.00'];
@@ -18,6 +18,8 @@ export default function QuoteForm({
   const [state, action, pending] = useActionState<QuoteState, FormData>(bindAndCollect, {
     error: null,
   });
+  const [insured, setInsured] = useState(customers[0]?.id ?? 'new');
+  const isNew = insured === 'new';
 
   return (
     <form action={action} className="card p-5 space-y-5">
@@ -25,14 +27,73 @@ export default function QuoteForm({
         <label htmlFor="customerId" className="block text-xs font-semibold mb-1.5">
           Named insured
         </label>
-        <select id="customerId" name="customerId" className="field" defaultValue={customers[0]?.id}>
+        <select
+          id="customerId"
+          name="customerId"
+          className="field"
+          value={insured}
+          onChange={(e) => setInsured(e.target.value)}
+        >
           {customers.map((c) => (
             <option key={c.id} value={c.id}>
               {c.legal_name} ({c.state_code})
             </option>
           ))}
+          <option value="new">＋ A business not on file yet</option>
         </select>
+        <p className="text-[11px] text-[var(--ink-faint)] mt-1">
+          The business buying the cover. Their state decides which filed taxes and fees apply.
+        </p>
       </div>
+
+      {isNew ? (
+        <div className="grid sm:grid-cols-2 gap-4 rounded-md bg-[var(--line-soft)] p-4">
+          <div className="sm:col-span-2">
+            <label htmlFor="newLegalName" className="block text-xs font-semibold mb-1.5">
+              Legal name
+            </label>
+            <input
+              id="newLegalName"
+              name="newLegalName"
+              placeholder="Ridgeline Coatings LLC"
+              className="field"
+            />
+            <p className="text-[11px] text-[var(--ink-faint)] mt-1">
+              Exactly as registered. This is the name printed on the declarations page, and the name a
+              claim payee is checked against.
+            </p>
+          </div>
+
+          <div>
+            <label htmlFor="newEmail" className="block text-xs font-semibold mb-1.5">
+              Contact email
+            </label>
+            <input
+              id="newEmail"
+              name="newEmail"
+              type="email"
+              placeholder="ops@ridgeline.test"
+              className="field num"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="newState" className="block text-xs font-semibold mb-1.5">
+              Risk state
+            </label>
+            <select id="newState" name="newState" className="field" defaultValue="CA">
+              {FILED_STATES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-[var(--ink-faint)] mt-1">
+              Only states this product is filed in.
+            </p>
+          </div>
+        </div>
+      ) : null}
 
       <div className="grid sm:grid-cols-2 gap-4">
         <div>
@@ -62,6 +123,9 @@ export default function QuoteForm({
               </option>
             ))}
           </select>
+          <p className="text-[11px] text-[var(--ink-faint)] mt-1">
+            The most payable for any one incident.
+          </p>
         </div>
 
         <div>
@@ -75,6 +139,9 @@ export default function QuoteForm({
               </option>
             ))}
           </select>
+          <p className="text-[11px] text-[var(--ink-faint)] mt-1">
+            What the insured absorbs first. A higher one earns a filed credit.
+          </p>
         </div>
 
         <div>
@@ -90,6 +157,9 @@ export default function QuoteForm({
             defaultValue={3}
             className="field num"
           />
+          <p className="text-[11px] text-[var(--ink-faint)] mt-1">
+            Listed individually, not on a blanket.
+          </p>
         </div>
       </div>
 
