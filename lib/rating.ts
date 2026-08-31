@@ -36,10 +36,10 @@ const STATE_FACTOR_BPS: Record<string, number> = {
 };
 
 const DEDUCTIBLE_CREDIT_BPS: Record<string, number> = {
-  '100000': 0,
-  '250000': 400,
-  '500000': 900,
-  '1000000': 1500,
+  '1000': 0,
+  '2500': 400,
+  '5000': 900,
+  '10000': 1500,
 };
 
 export function rate(input: RatingInput): Rating {
@@ -82,7 +82,11 @@ export function rate(input: RatingInput): Rating {
 
   const subtotal = components.reduce((total, c) => total + c.amountMinor, 0n);
 
-  const deductibleBps = DEDUCTIBLE_CREDIT_BPS[(input.deductibleMinor / 100n).toString()] ?? 0;
+  const deductibleKey = (input.deductibleMinor / 100n).toString();
+  const deductibleBps = DEDUCTIBLE_CREDIT_BPS[deductibleKey];
+  if (deductibleBps === undefined) {
+    throw new Error(`no filed deductible credit for a ${deductibleKey} deductible`);
+  }
   if (deductibleBps > 0) {
     const credit = -floorDiv(subtotal * BigInt(deductibleBps), 10_000n);
     components.push({

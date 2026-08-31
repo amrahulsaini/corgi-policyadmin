@@ -418,3 +418,17 @@ direction for an insurer.
 Planting a break posts a real premium receipt against a provider reference that does not exist. It
 cannot be deleted afterwards — correcting it is a reversal, which is the honest demonstration of the
 whole thesis.
+
+## T+09:10 — Bug: the deductible credit never applied
+
+Found while explaining the quote form. `DEDUCTIBLE_CREDIT_BPS` was keyed in cents (`'250000'`) but
+looked up in dollars (`(deductibleMinor / 100n).toString()` gives `'2500'`). The lookup never
+matched, `?? 0` swallowed it, and the deductible dropdown silently changed nothing about the price.
+
+Two changes. The keys are now dollars so they match the lookup, and the `?? 0` fallback is gone — an
+unrecognised deductible now throws rather than quietly pricing as though no credit were filed. A
+rating engine that cannot find a filed factor should refuse to quote, not guess.
+
+This is exactly the class of bug the `basis` string on every rating component exists to catch: the
+number was plausible, the total was internally consistent, and nothing failed. What gave it away was
+recomputing the quote by hand and getting a different answer to the one the system produced.
