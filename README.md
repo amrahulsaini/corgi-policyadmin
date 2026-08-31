@@ -13,9 +13,8 @@ Password for every account: `corgi-demo-2026`
 | --- | --- | --- |
 | Staff | `dana@corgi.test` | issues, corrects, reconciles |
 | Staff | `marcus@corgi.test` | the second approver — maker-checker needs two people |
-| Broker | `kim@meridian.test` | KYB approved, can bind |
-| Broker | `sam@harbor.test` | KYB unverified, binding refused |
-| Customer | `ops@sierrafreight.test` | read-only policy view |
+| Broker | `sam@harbor.test` | KYB approved by a live Persona inquiry, can bind |
+| Broker | `kim@meridian.test` | KYB unverified, binding refused until a check passes |
 
 ## Integrations — live or simulated
 
