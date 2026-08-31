@@ -88,3 +88,19 @@ across its own window.
 The alternative — recomputing a single annual premium and re-deriving the earning curve — makes a
 backdated endorsement rewrite history. Layers make it additive, which is the only shape that
 survives an append-only rule.
+
+## T+01:40 — Self-hosted on a GCP VM rather than Vercel
+
+Switched the deployment target to a Debian 12 VM in us-central1, fronted by Caddy with automatic
+Let's Encrypt certificates on `35-193-160-200.nip.io`, with Postgres on the same box.
+
+Vercel would have been faster to stand up. Two things decided against it. The nightly reconciliation
+run and the daily premium-earning job want a persistent process and real cron; the free tier caps
+cron at once daily with a ten-second ceiling. And a cold start during a live demo is a bad look for a
+system whose whole claim is that it stays calm under pressure.
+
+us-central1 rather than the Mumbai region the rest of this account uses, because the people opening
+the URL are in the US and latency is part of how a demo feels.
+
+Certificate issuance verified before any application code was deployed, so an SSL problem could never
+be discovered at hour forty.
