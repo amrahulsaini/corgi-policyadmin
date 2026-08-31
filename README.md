@@ -83,6 +83,16 @@ Deploying to the VM is one command: `bash deploy/deploy.sh`. It ships a tarball 
 `gcloud compute scp`, runs migrations, builds, and restarts — no repository credential ever lives on
 the server.
 
+## Documentation
+
+| File | What it covers |
+| --- | --- |
+| `docs/BRIEF.md` | The brief as received, verbatim |
+| `docs/STATUS.md` | Requirement-by-requirement compliance, how production runs, submission checklist |
+| `docs/CODEBASE.md` | Every screen, its URL, and the file behind it |
+| `docs/decisions.md` | The decision log, written as the work happened |
+| `docs/cut-list.md` | What was not built, and why |
+
 ## Layout
 
 ```
