@@ -1,0 +1,16 @@
+insert into ledger_accounts (code, name, type, normal) values
+  ('1000', 'Cash at processor',        'asset',     'debit'),
+  ('1100', 'Premium receivable',       'asset',     'debit'),
+  ('1200', 'Claim payout clearing',    'asset',     'debit'),
+  ('2000', 'Unearned premium',         'liability', 'credit'),
+  ('2100', 'Surplus lines tax payable','liability', 'credit'),
+  ('2110', 'Stamping fee payable',     'liability', 'credit'),
+  ('2200', 'Commission payable',       'liability', 'credit'),
+  ('2300', 'Claim reserve',            'liability', 'credit'),
+  ('2400', 'Refund payable',           'liability', 'credit'),
+  ('4000', 'Earned premium',           'revenue',   'credit'),
+  ('4100', 'Policy fee income',        'revenue',   'credit'),
+  ('5000', 'Commission expense',       'expense',   'debit'),
+  ('5100', 'Claim expense',            'expense',   'debit'),
+  ('5200', 'Processor fees',           'expense',   'debit'),
+  ('5900', 'Rounding difference',      'expense',   'debit');
