@@ -11,7 +11,8 @@ export async function startVerification(brokerId: string): Promise<{ url: string
   if (broker.kyb_status === 'approved') throw new Error('this agency is already cleared');
 
   const inquiry = await createInquiry(`broker:${brokerId}`);
-  const url = await oneTimeLink(inquiry.id);
+  const base = process.env.APP_URL;
+  const url = await oneTimeLink(inquiry.id, base ? `${base}/broker?checked=1` : undefined);
 
   await recordStatus({
     brokerId,

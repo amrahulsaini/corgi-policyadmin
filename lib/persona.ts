@@ -63,14 +63,18 @@ export async function createInquiry(referenceId: string): Promise<PersonaInquiry
   };
 }
 
-export async function oneTimeLink(inquiryId: string): Promise<string> {
+export async function oneTimeLink(inquiryId: string, redirectTo?: string): Promise<string> {
   const json = await call<{ meta?: { 'one-time-link'?: string } }>(
     `/inquiries/${inquiryId}/generate-one-time-link`,
     { method: 'POST' },
   );
   const link = json.meta?.['one-time-link'];
   if (!link) throw new Error('Persona returned no one-time link');
-  return link;
+  if (!redirectTo) return link;
+
+  const url = new URL(link);
+  url.searchParams.set('redirect-uri', redirectTo);
+  return url.toString();
 }
 
 export async function readInquiry(inquiryId: string): Promise<PersonaInquiry> {
