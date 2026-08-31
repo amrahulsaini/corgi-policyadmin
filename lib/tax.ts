@@ -47,11 +47,13 @@ export async function surchargesFor(
   premiumMinor: Minor,
   onDate: IsoDate,
   tx: Db = defaultSql,
+  opts: { includeFlatFees?: boolean } = {},
 ): Promise<Surcharge[]> {
   const rows = await ratesFor(stateCode, onDate, tx);
   if (rows.length === 0) throw new Error(`no filed taxes or fees for ${stateCode} on ${onDate}`);
 
-  const flats = rows.filter((r) => r.flat_minor !== null);
+  const includeFlat = opts.includeFlatFees ?? true;
+  const flats = includeFlat ? rows.filter((r) => r.flat_minor !== null) : [];
   const percents = rows.filter((r) => r.rate_bps !== null);
 
   const surcharges: Surcharge[] = flats.map((r) => ({

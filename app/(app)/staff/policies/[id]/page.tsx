@@ -5,7 +5,10 @@ import { sql } from '@/lib/db';
 import { format } from '@/lib/money';
 import { layerEarnedAsOf, dayCount } from '@/lib/premium';
 import { loadEntries, loadPolicyAsOf } from '@/lib/policy/view';
+import { thresholdMinor } from '@/lib/approvals';
 import AsOfPicker from './as-of';
+import EndorseForm from './endorse-form';
+import CorrectForm from './correct-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +40,18 @@ export default async function PolicyDetail(props: {
      where c.policy_id = ${id}::uuid
      order by c.created_at
   `;
+
+  const reversedIds = new Set(
+    view.versions.filter((v) => v.reversesVersionId).map((v) => v.reversesVersionId),
+  );
+  const correctable = view.versions
+    .filter((v) => (v.kind === 'endorsement' || v.kind === 'rebook') && !reversedIds.has(v.id))
+    .map((v) => ({
+      id: v.id,
+      versionNo: v.versionNo,
+      effectiveDate: v.effectiveDate,
+      description: v.description,
+    }));
 
   const { header } = view;
   const termDays = dayCount(header.termStart, header.termEnd);
@@ -204,6 +219,52 @@ export default async function PolicyDetail(props: {
         )}
       </section>
 
+      {header.status === 'bound' ? (
+        <>
+          <section className="card overflow-hidden">
+            <div className="px-4 py-3 border-b rule">
+              <h2 className="font-semibold text-sm">Endorse mid-term</h2>
+              <p className="text-xs text-[var(--ink-soft)] mt-0.5">
+                The premium delta is priced over the remaining term and charged from the effective
+                date. Backdating changes the maths, not just the label.
+              </p>
+            </div>
+            <EndorseForm
+              policyId={id}
+              termStart={header.termStart}
+              termEnd={header.termEnd}
+              currentLimit={centsToInput(view.version?.limitMinor ?? 0n)}
+              currentDeductible={centsToInput(view.version?.deductibleMinor ?? 0n)}
+              currentVehicles={
+                view.version?.exposures.filter((e) => e.kind === 'vehicle').length ?? 0
+              }
+              currentSquareFeet={
+                view.version?.exposures.reduce(
+                  (t, e) => t + (e.kind === 'location' ? e.squareFeet : 0),
+                  0,
+                ) ?? 0
+              }
+              thresholdLabel={format(thresholdMinor())}
+            />
+          </section>
+
+          <section className="card overflow-hidden border-[var(--warn)]">
+            <div className="px-4 py-3 border-b rule">
+              <h2 className="font-semibold text-sm">Correct a backdated effective date</h2>
+              <p className="text-xs text-[var(--ink-soft)] mt-0.5">
+                A correction is a reversal plus a re-book. No row is ever edited.
+              </p>
+            </div>
+            <CorrectForm
+              policyId={id}
+              termStart={header.termStart}
+              termEnd={header.termEnd}
+              candidates={correctable}
+            />
+          </section>
+        </>
+      ) : null}
+
       <section className="card overflow-hidden">
         <div className="px-4 py-3 border-b rule">
           <h2 className="font-semibold text-sm">Journal entries</h2>
@@ -254,6 +315,10 @@ export default async function PolicyDetail(props: {
       </section>
     </div>
   );
+}
+
+function centsToInput(value: bigint): string {
+  return `${value / 100n}.${(value % 100n).toString().padStart(2, '0')}`;
 }
 
 function Figure({ label, value, note }: { label: string; value: string; note?: string }) {

@@ -227,3 +227,85 @@ others would have silently stored strings where objects were expected.
 
 The verified webhook body is stored as `sql.json(JSON.parse(raw))`, so what is kept is exactly what
 Stripe sent rather than a re-serialised copy.
+
+## T+05:10 — Endorsements price the delta over the remaining term
+
+`priceEndorsement` re-rates the whole risk at the new exposure set, subtracts the standing annual
+premium to get an annual delta, then pro-rates that delta from the effective date to term end. The
+resulting amount opens its own premium layer over exactly that window.
+
+Flat fees are excluded from an endorsement's surcharges. The $25 California policy fee is charged
+once at inception and does not repeat every time a vehicle is added; only the percentage taxes apply
+to additional premium. `surchargesFor` takes an `includeFlatFees` flag for exactly this.
+
+## T+05:20 — The correction is a reversal plus a re-book, proved on the deployed database
+
+`correctEndorsementDate` writes five things inside one transaction: a reversal version pointing at
+the original, a negative premium layer mirroring the original layer's window, a reversing journal
+entry at the original effective date, a re-book version at the corrected date, and a fresh journal
+entry priced from the corrected date.
+
+Nothing is edited. Verified end to end against the deployed database:
+
+```
+endorsed at the WRONG date 2026-11-01
+  annual delta   $755.20
+  pro-rata       $626.91 over 303 of 365 days
+
+corrected to 2026-09-15
+  corrected      $724.16 over 350 of 365 days
+  difference      $97.25
+
+#3  2026-11-01  endorsement.booked            $646.83
+#4  2026-11-01  endorsement.booked.reversed   $646.83   (reversal)
+#5  2026-09-15  endorsement.booked            $747.18
+
+original entry still reads effective 2026-11-01
+chain intact, debits $15,884.02 = credits $15,884.02
+```
+
+The reversal is posted at the *original* effective date, not at today's. That matters: the reversal
+has to undo the wrong figure in the period the wrong figure landed in, or the month it polluted
+never comes back into line.
+
+## T+05:30 — Maker-checker, enforced twice
+
+Endorsements above `APPROVAL_THRESHOLD_MINOR` do not post. They land in `approvals` as a payload, and
+a different staff user has to execute them.
+
+Enforced in three places on purpose: the database has a check constraint that rejects
+`decided_by = requested_by`, `decideApproval` raises `SelfApprovalError` before touching the ledger,
+and the approvals screen refuses to render decision buttons on your own request. The constraint is
+the one that actually matters; the other two exist so the person gets a sentence rather than a
+stack trace.
+
+## T+05:45 — Persona wired live, and the KYB reality
+
+Persona's sandbox trial tier offers KYC + AML inquiries, not a business verification product. Rather
+than pretend otherwise, the broker check is a live Persona inquiry against the agency principal, and
+the entity-level registry lookup is out of scope for this build. The README says so plainly.
+
+The integration is genuinely live: `createInquiry` and `generate-one-time-link` are real API calls
+returning real inquiry ids, and the webhook verifies Persona's `t=,v1=` HMAC the same way Stripe's
+is verified. Confirmed end to end on the deployed system:
+
+```
+before:        Harbor Point Insurance Services → unverified
+inquiry:       inq_AE1xLTzYTNYZLEjbSy6U51mWEPFNvb   (live sandbox)
+after start:   pending
+webhook:       processed — broker moved to approved
+after:         approved
+```
+
+`kyb_events` is append-only, so the pending → approved history survives. `brokers.kyb_status` is a
+mirror of provider truth for querying, not the record itself.
+
+An unmatched inquiry parks rather than throwing: the webhook for an inquiry with no broker behind it
+returned `parked` with a readable note and a 200, because a provider retrying forever against a 500
+is worse than a queued event someone can look at.
+
+## T+05:50 — When the provider is unreachable, binding stays closed
+
+`startVerification` failing surfaces the provider error to the broker and leaves KYB where it was.
+The bind gate is a positive check for `approved`, so any failure mode — provider down, timeout,
+malformed response — degrades to refusing to bind rather than to allowing it.

@@ -6,6 +6,7 @@ const NAV: Record<SessionUser['role'], { href: string; label: string }[]> = {
   staff: [
     { href: '/staff', label: 'Overview' },
     { href: '/staff/policies', label: 'Policies' },
+    { href: '/staff/approvals', label: 'Approvals' },
     { href: '/staff/ledger', label: 'Ledger' },
     { href: '/staff/brokers', label: 'Brokers' },
   ],

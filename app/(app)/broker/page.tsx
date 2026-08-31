@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import { format } from '@/lib/money';
+import KybButton from './kyb-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,13 +62,16 @@ export default async function BrokerOverview() {
               Quote new business
             </Link>
           ) : (
-            <div className="flex flex-wrap items-center gap-3">
-              <button type="button" disabled className="btn btn-primary text-sm">
-                Quote new business
-              </button>
-              <span className="text-xs text-[var(--ink-soft)]">
-                Binding is closed while verification is {broker.kyb_status}.
-              </span>
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <button type="button" disabled className="btn btn-primary text-sm">
+                  Quote new business
+                </button>
+                <span className="text-xs text-[var(--ink-soft)]">
+                  Binding is closed while verification is {broker.kyb_status}.
+                </span>
+              </div>
+              <KybButton status={broker.kyb_status} />
             </div>
           )}
         </div>
