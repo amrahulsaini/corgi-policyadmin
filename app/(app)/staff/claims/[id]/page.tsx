@@ -97,7 +97,7 @@ export default async function ClaimDetail(props: { params: Promise<{ id: string 
           </p>
         </div>
         <div className="overflow-x-auto">
-          <table className="grid">
+          <table className="sheet">
             <thead>
               <tr>
                 <th>Event</th>

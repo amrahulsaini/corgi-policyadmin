@@ -105,7 +105,7 @@ export default async function PolicyDetail(props: {
           </p>
         </div>
         <div className="overflow-x-auto">
-          <table className="grid">
+          <table className="sheet">
             <thead>
               <tr>
                 <th>From</th>
@@ -142,7 +142,7 @@ export default async function PolicyDetail(props: {
           </p>
         </div>
         <div className="overflow-x-auto">
-          <table className="grid">
+          <table className="sheet">
             <thead>
               <tr>
                 <th>#</th>
@@ -187,7 +187,7 @@ export default async function PolicyDetail(props: {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="grid">
+            <table className="sheet">
               <thead>
                 <tr>
                   <th>Reason</th>
@@ -290,7 +290,7 @@ export default async function PolicyDetail(props: {
         </div>
         {claims.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="grid">
+            <table className="sheet">
               <thead>
                 <tr>
                   <th>Claim</th>

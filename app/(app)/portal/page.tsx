@@ -39,7 +39,7 @@ export default async function CustomerPortal() {
         </div>
       ) : (
         <div className="card overflow-x-auto">
-          <table className="grid">
+          <table className="sheet">
             <thead>
               <tr>
                 <th>Policy</th>

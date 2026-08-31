@@ -122,30 +122,39 @@ body {
   outline-offset: -1px;
 }
 
-table.grid {
+table.sheet {
+  display: table;
   width: 100%;
   border-collapse: collapse;
   font-size: 0.8125rem;
 }
-table.grid th {
+table.sheet th {
   text-align: left;
   font-weight: 600;
   font-size: 0.6875rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ink-faint);
-  padding: 0.5rem 0.75rem;
+  padding: 0.625rem 0.875rem;
   border-bottom: 1px solid var(--line);
   white-space: nowrap;
 }
-table.grid td {
-  padding: 0.5rem 0.75rem;
+table.sheet th.text-right {
+  text-align: right;
+}
+table.sheet td {
+  padding: 0.625rem 0.875rem;
   border-bottom: 1px solid var(--line-soft);
   vertical-align: top;
 }
-table.grid tbody tr:last-child td {
+table.sheet tbody tr:last-child td {
   border-bottom: none;
 }
-table.grid tbody tr:hover {
+table.sheet tbody tr:hover {
   background: #fdfaf6;
+}
+table.sheet tfoot td {
+  border-top: 1px solid var(--line);
+  border-bottom: none;
+  background: var(--line-soft);
 }

@@ -75,7 +75,7 @@ export default async function BrokerStatements(props: {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="grid">
+            <table className="sheet">
               <thead>
                 <tr>
                   <th>Effective</th>

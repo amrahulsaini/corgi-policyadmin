@@ -96,7 +96,7 @@ export default async function StaffOverview() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="grid">
+            <table className="sheet">
               <thead>
                 <tr>
                   <th>Code</th>

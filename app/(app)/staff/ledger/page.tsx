@@ -101,7 +101,7 @@ export default async function LedgerPage(props: {
           <h2 className="font-semibold text-sm">Trial balance</h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="grid">
+          <table className="sheet">
             <thead>
               <tr>
                 <th>Code</th>
@@ -157,7 +157,7 @@ export default async function LedgerPage(props: {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="grid">
+            <table className="sheet">
               <thead>
                 <tr>
                   <th>#</th>

@@ -79,7 +79,7 @@ export default async function ApprovalsPage() {
             <h2 className="font-semibold text-sm">Decided</h2>
           </div>
           <div className="overflow-x-auto">
-            <table className="grid">
+            <table className="sheet">
               <thead>
                 <tr>
                   <th>Kind</th>
