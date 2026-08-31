@@ -82,8 +82,8 @@ export async function createPremiumCheckout(input: CollectInput): Promise<Collec
         policy_id: input.policyId,
         policy_number: policy.policy_number,
       },
-      success_url: `${base}/staff/policies/${input.policyId}?paid=1`,
-      cancel_url: `${base}/staff/policies/${input.policyId}?cancelled=1`,
+      success_url: `${base}/paid?policy=${input.policyId}`,
+      cancel_url: `${base}/broker/policies?cancelled=1`,
     },
     { idempotencyKey: `checkout:${chargeId}` },
   );
