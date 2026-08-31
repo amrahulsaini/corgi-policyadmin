@@ -4,11 +4,13 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export default function AsOfPicker({
+  basePath,
   policyId,
   asOf,
   termStart,
   termEnd,
 }: {
+  basePath: string;
   policyId: string;
   asOf: string;
   termStart: string;
@@ -19,7 +21,7 @@ export default function AsOfPicker({
 
   function go(next: string) {
     setValue(next);
-    router.push(`/staff/policies/${policyId}?asOf=${next}`);
+    router.push(`${basePath}/${policyId}?asOf=${next}`);
   }
 
   return (

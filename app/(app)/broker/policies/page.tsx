@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { requireRole } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import { format } from '@/lib/money';
@@ -82,7 +83,11 @@ export default async function BrokerPolicies() {
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td className="num font-medium">{r.policy_number}</td>
+                  <td className="num font-medium">
+                    <Link href={`/broker/policies/${r.id}`} className="hover:underline">
+                      {r.policy_number}
+                    </Link>
+                  </td>
                   <td>{r.customer_name}</td>
                   <td className="num text-[var(--ink-soft)] whitespace-nowrap">
                     {r.term_start} → {r.term_end}

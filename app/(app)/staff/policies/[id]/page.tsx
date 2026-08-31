@@ -6,7 +6,7 @@ import { format } from '@/lib/money';
 import { layerEarnedAsOf, dayCount } from '@/lib/premium';
 import { loadEntries, loadPolicyAsOf } from '@/lib/policy/view';
 import { thresholdMinor } from '@/lib/approvals';
-import AsOfPicker from './as-of';
+import AsOfPicker from '@/components/as-of';
 import EndorseForm from './endorse-form';
 import CorrectForm from './correct-form';
 import CancelForm from './cancel-form';
@@ -79,7 +79,7 @@ export default async function PolicyDetail(props: {
         </span>
       </div>
 
-      <AsOfPicker policyId={id} asOf={asOf} termStart={header.termStart} termEnd={header.termEnd} />
+      <AsOfPicker basePath="/staff/policies" policyId={id} asOf={asOf} termStart={header.termStart} termEnd={header.termEnd} />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Figure label="Written premium" value={format(view.writtenMinor)} />
