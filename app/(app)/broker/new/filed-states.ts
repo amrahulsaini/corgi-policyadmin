@@ -1,1 +1,1 @@
-export const FILED_STATES = ['CA', 'TX', 'NY'];
+export const FILED_STATES = ['CA'];

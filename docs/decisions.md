@@ -62,8 +62,14 @@ Serialised as strings at API boundaries.
 
 Every pro-rata division uses `floorDiv`. Charges are positive and floor downward; refunds are
 negative and floor away from zero, which makes them larger. One function, one rule, and it always
-lands the same way: **rounding favours the policyholder, and the residual cent is booked to account
-5900, Rounding difference.**
+lands the same way: **the carrier absorbs the residual cent, so rounding favours the policyholder.**
+
+No correcting entry is posted for it, because none is needed — the entry is written with the rounded
+figure and balances on its own. `5900 Rounding difference` is seeded in the chart of accounts for the
+case that does need it: splitting one amount across several accounts, where the parts must sum back
+to the whole. `allocate()` in `lib/money.ts` is that function, largest-remainder and deterministic.
+Nothing in the current loop splits an amount that way, so the account stands at zero and the ledger
+says so rather than being fed a token entry to look busy.
 
 Earned premium floors for the same reason — a floored earned figure leaves unearned premium slightly
 overstated, which is the conservative direction for a liability we owe back.

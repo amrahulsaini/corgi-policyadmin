@@ -15,6 +15,7 @@ Password for every account: `corgi-demo-2026`
 | Staff | `marcus@corgi.test` | the second approver — maker-checker needs two people |
 | Broker | `sam@harbor.test` | KYB approved by a live Persona inquiry, can bind |
 | Broker | `kim@meridian.test` | KYB unverified, binding refused until a check passes |
+| Customer | `ops@loopwar.test` | read-only policy view and declarations page |
 
 ## Integrations — live or simulated
 
@@ -39,8 +40,14 @@ a registry lookup on the business. Production would use Middesk or Persona's KYB
 - **USD only.** Amounts are `bigint` minor units in TypeScript and `bigint` in Postgres. Never a
   float, never a JavaScript `number`.
 - **Rounding.** Every pro-rata division uses `floorDiv`. Charges floor downward, refunds floor away
-  from zero. One rule: rounding always favours the policyholder, and the residual cent is booked to
-  account `5900 Rounding difference`.
+  from zero. One rule, one function, and it always lands the same way: the carrier absorbs the
+  residual cent as a slightly smaller charge or a slightly larger refund, so rounding favours the
+  policyholder. No entry is needed to express that, because the entry is already the rounded figure
+  and it still balances.
+- **One state, filed properly.** California is the only state with filed rates and taxes, and the
+  quote form offers no other. Rating carries factors for Texas and New York, but a state is only
+  offered once its taxes and fees are on file — a rated risk with no filed tax is a risk that cannot
+  be billed correctly.
 - **Taxes and fees are not premium.** California surplus lines tax (3.00%) and the SLA stamping fee
   (0.18%) are refundable and credit their own liability accounts. The $25 policy fee is fully earned
   at inception and does not come back on cancellation. None of them enter the earned-premium maths.
