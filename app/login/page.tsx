@@ -64,22 +64,28 @@ export default async function LoginPage() {
 
           <LoginForm />
 
-          <div className="mt-8 card p-4">
-            <p className="text-xs uppercase tracking-wide text-[var(--ink-faint)] font-semibold">
+          <details className="mt-8 card overflow-hidden group">
+            <summary className="px-4 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--ink-faint)] cursor-pointer select-none list-none flex items-center justify-between hover:text-[var(--ink)]">
               Demo accounts
-            </p>
-            <p className="mt-1 text-xs text-[var(--ink-soft)]">
-              Password for all: <span className="num">corgi-demo-2026</span>
-            </p>
-            <ul className="mt-3 space-y-2">
-              {DEMO.map((d) => (
-                <li key={d.email} className="flex items-baseline justify-between gap-3 text-xs">
-                  <span className="num text-[var(--ink)]">{d.email}</span>
-                  <span className="text-[var(--ink-faint)] text-right">{d.note}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
+              <span className="text-[var(--ink-faint)] group-open:rotate-90 transition-transform">
+                ›
+              </span>
+            </summary>
+            <div className="px-4 pb-4 border-t rule pt-3">
+              <p className="text-xs text-[var(--ink-soft)]">
+                Sandbox logins for reviewing this build. Password for all:{' '}
+                <span className="num">corgi-demo-2026</span>
+              </p>
+              <ul className="mt-3 space-y-2">
+                {DEMO.map((d) => (
+                  <li key={d.email} className="flex items-baseline justify-between gap-3 text-xs">
+                    <span className="num text-[var(--ink)]">{d.email}</span>
+                    <span className="text-[var(--ink-faint)] text-right">{d.note}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </details>
         </div>
       </section>
     </main>

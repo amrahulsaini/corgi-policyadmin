@@ -220,6 +220,10 @@ table.sheet tfoot td {
   background: var(--line-soft);
 }
 
+summary::-webkit-details-marker {
+  display: none;
+}
+
 @keyframes rise {
   from {
     opacity: 0;
