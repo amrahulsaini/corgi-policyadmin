@@ -59,7 +59,8 @@ export default function QuoteForm({
   }, [insured, newState, termStart, limit, deductible, vehicles, squareFeet]);
 
   return (
-    <form action={action} className="card p-5 space-y-5">
+    <div className="grid lg:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
+      <form action={action} className="card p-5 space-y-5">
       <div>
         <label htmlFor="customerId" className="block text-xs font-semibold mb-1.5">
           Named insured
@@ -237,8 +238,6 @@ export default function QuoteForm({
         />
       </div>
 
-      <QuoteBox quote={quote} quoting={quoting} />
-
       {state.error ? (
         <p role="alert" className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded-md px-3 py-2">
           {state.error}
@@ -253,41 +252,44 @@ export default function QuoteForm({
           Opens Stripe test checkout. Card <span className="num">4242 4242 4242 4242</span>, any
           future expiry, any CVC.
         </p>
-      </div>
-    </form>
+        </div>
+      </form>
+
+      <aside className="lg:sticky lg:top-20">
+        <QuoteBox quote={quote} quoting={quoting} />
+      </aside>
+    </div>
   );
 }
 
 function QuoteBox({ quote, quoting }: { quote: BindQuote | null; quoting: boolean }) {
   if (!quote) {
     return (
-      <div className="rounded-md border border-[var(--line)] px-3 py-2.5 text-xs text-[var(--ink-faint)]">
-        {quoting ? 'Rating…' : 'Fill the risk above and the premium appears here before you bind.'}
+      <div className="card p-4 text-xs text-[var(--ink-faint)]">
+        {quoting ? 'Rating…' : 'Fill the risk in and the premium appears here before you bind.'}
       </div>
     );
   }
 
   if (quote.error) {
     return (
-      <div className="rounded-md bg-[var(--bad-soft)] text-[var(--bad)] px-3 py-2.5 text-xs">
-        {quote.error}
-      </div>
+      <div className="card p-4 bg-[var(--bad-soft)] text-[var(--bad)] text-xs">{quote.error}</div>
     );
   }
 
   return (
-    <div className={`rounded-md border border-[var(--line)] px-4 py-3 ${quoting ? 'opacity-60' : ''}`}>
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <span className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-faint)]">
+    <div className={`card overflow-hidden transition-opacity ${quoting ? 'opacity-60' : ''}`}>
+      <div className="px-4 py-3 border-b rule bg-[var(--accent-soft)]">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-[var(--accent)]">
           Payable at checkout
         </span>
-        <span className="num text-xl font-semibold">{quote.total}</span>
+        <div className="num text-2xl font-semibold mt-0.5">{quote.total}</div>
+        <p className="text-[11px] text-[var(--ink-soft)] mt-1">
+          Term {quote.termStart} to {quote.termEnd} · rates filed in {quote.stateCode}
+        </p>
       </div>
-      <p className="text-[11px] text-[var(--ink-faint)] mt-1">
-        Term {quote.termStart} to {quote.termEnd}. Rates filed in {quote.stateCode}.
-      </p>
 
-      <div className="mt-3 grid lg:grid-cols-2 gap-x-8 gap-y-4 text-xs">
+      <div className="px-4 py-3 space-y-4 text-xs">
         <div>
           <div className="font-semibold mb-1.5">How the premium is rated</div>
           <table className="sheet">
@@ -335,9 +337,9 @@ function QuoteBox({ quote, quoting }: { quote: BindQuote | null; quoting: boolea
         </div>
       </div>
 
-      <p className="text-[11px] text-[var(--ink-soft)] mt-3">
-        Taxes and fees are collected with the premium but are never part of it. Commission is a
-        share of the premium alone, and it books when this settles — not when you bind.
+      <p className="px-4 py-3 border-t rule bg-[var(--line-soft)] text-[11px] text-[var(--ink-soft)]">
+        Taxes and fees are collected with the premium but are never part of it. Commission is a share
+        of the premium alone, and it books when this settles — not when you bind.
       </p>
     </div>
   );
