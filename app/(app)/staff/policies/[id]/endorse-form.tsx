@@ -1,25 +1,32 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { endorse, type ActionState } from './actions';
+
+export type Baseline = {
+  effectiveDate: string;
+  limit: string;
+  deductible: string;
+  vehicles: number;
+  squareFeet: number;
+};
+
+function baselineOn(schedule: Baseline[], date: string): Baseline | null {
+  const standing = schedule.filter((s) => s.effectiveDate <= date);
+  return standing.length ? standing[standing.length - 1] : null;
+}
 
 export default function EndorseForm({
   policyId,
   termStart,
   termEnd,
-  currentLimit,
-  currentDeductible,
-  currentVehicles,
-  currentSquareFeet,
+  schedule,
   thresholdLabel,
 }: {
   policyId: string;
   termStart: string;
   termEnd: string;
-  currentLimit: string;
-  currentDeductible: string;
-  currentVehicles: number;
-  currentSquareFeet: number;
+  schedule: Baseline[];
   thresholdLabel: string;
 }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(endorse, {
@@ -27,6 +34,28 @@ export default function EndorseForm({
     notice: null,
     link: null,
   });
+
+  const today = new Date().toISOString().slice(0, 10);
+  const start = today > termEnd ? termEnd : today < termStart ? termStart : today;
+
+  const [effectiveDate, setEffectiveDate] = useState(start);
+  const [base, setBase] = useState(() => baselineOn(schedule, start) ?? schedule[0]);
+  const [limit, setLimit] = useState(base?.limit ?? '1000000.00');
+  const [deductible, setDeductible] = useState(base?.deductible ?? '2500.00');
+  const [vehicles, setVehicles] = useState(String(base?.vehicles ?? 0));
+  const [squareFeet, setSquareFeet] = useState(String(base?.squareFeet ?? 0));
+
+  const later = schedule.filter((s) => s.effectiveDate > effectiveDate);
+
+  function pickDate(next: string) {
+    setEffectiveDate(next);
+    const found = baselineOn(schedule, next) ?? schedule[0];
+    setBase(found);
+    setLimit(found.limit);
+    setDeductible(found.deductible);
+    setVehicles(String(found.vehicles));
+    setSquareFeet(String(found.squareFeet));
+  }
 
   return (
     <form action={action} className="px-4 py-4 space-y-4">
@@ -43,11 +72,13 @@ export default function EndorseForm({
             type="date"
             min={termStart}
             max={termEnd}
-            defaultValue={new Date().toISOString().slice(0, 10)}
+            value={effectiveDate}
+            onChange={(e) => pickDate(e.target.value)}
             className="field num"
           />
           <p className="text-[11px] text-[var(--ink-faint)] mt-1">
-            Priced from this date, not from today.
+            Priced from this date, not from today. Everything below is seeded from the cover standing
+            on it.
           </p>
         </div>
 
@@ -55,7 +86,13 @@ export default function EndorseForm({
           <label htmlFor="limit" className="block text-xs font-semibold mb-1.5">
             Occurrence limit
           </label>
-          <select id="limit" name="limit" className="field num" defaultValue={currentLimit}>
+          <select
+            id="limit"
+            name="limit"
+            className="field num"
+            value={limit}
+            onChange={(e) => setLimit(e.target.value)}
+          >
             <option value="1000000.00">$1,000,000</option>
             <option value="2000000.00">$2,000,000</option>
             <option value="5000000.00">$5,000,000</option>
@@ -70,7 +107,8 @@ export default function EndorseForm({
             id="deductible"
             name="deductible"
             className="field num"
-            defaultValue={currentDeductible}
+            value={deductible}
+            onChange={(e) => setDeductible(e.target.value)}
           >
             <option value="1000.00">$1,000</option>
             <option value="2500.00">$2,500</option>
@@ -89,12 +127,13 @@ export default function EndorseForm({
             type="number"
             min={0}
             max={50}
-            defaultValue={currentVehicles}
+            value={vehicles}
+            onChange={(e) => setVehicles(e.target.value)}
             className="field num"
           />
           <p className="text-[11px] text-[var(--ink-faint)] mt-1">
-            {currentVehicles} on the policy today. This is the new total, not how many to add — to
-            put a fourth on cover, type {currentVehicles + 1}.
+            {base?.vehicles ?? 0} on cover at {effectiveDate}. This is the new total, not how many to
+            add — for one more, type {(base?.vehicles ?? 0) + 1}.
           </p>
         </div>
 
@@ -109,11 +148,12 @@ export default function EndorseForm({
             min={0}
             max={500000}
             step={100}
-            defaultValue={currentSquareFeet}
+            value={squareFeet}
+            onChange={(e) => setSquareFeet(e.target.value)}
             className="field num"
           />
           <p className="text-[11px] text-[var(--ink-faint)] mt-1">
-            {currentSquareFeet.toLocaleString()} sq ft scheduled today. The whole schedule is
+            {(base?.squareFeet ?? 0).toLocaleString()} sq ft at {effectiveDate}. The whole schedule is
             rewritten at this date, so every version can be read on its own.
           </p>
         </div>
@@ -130,6 +170,15 @@ export default function EndorseForm({
           />
         </div>
       </div>
+
+      {later.length > 0 ? (
+        <p className="text-xs text-[var(--warn)] bg-[var(--warn-soft)] rounded-md px-3 py-2">
+          {later.length === 1 ? 'A later version is' : `${later.length} later versions are`} already
+          booked on this policy, effective{' '}
+          <span className="num">{later.map((s) => s.effectiveDate).join(', ')}</span>. This
+          endorsement prices against {effectiveDate}, not against them, and it does not undo them.
+        </p>
+      ) : null}
 
       <label className="flex items-start gap-2.5 rounded-md bg-[var(--line-soft)] px-3 py-2.5">
         <input
@@ -157,12 +206,7 @@ export default function EndorseForm({
         <div className="text-sm text-[var(--good)] bg-[var(--good-soft)] rounded-md px-3 py-2 space-y-2">
           <p>{state.notice}</p>
           {state.link ? (
-            <a
-              href={state.link}
-              target="_blank"
-              rel="noreferrer"
-              className="btn btn-ghost text-xs"
-            >
+            <a href={state.link} target="_blank" rel="noreferrer" className="btn btn-ghost text-xs">
               Open the payment link
             </a>
           ) : null}

@@ -58,6 +58,7 @@ export async function priceEndorsement(
       from policy_versions
      where policy_id = ${input.policyId}::uuid
        and kind <> 'reversal'
+       and effective_date <= ${input.effectiveDate}::date
        and id not in (
          select reverses_version_id from policy_versions
           where policy_id = ${input.policyId}::uuid and reverses_version_id is not null

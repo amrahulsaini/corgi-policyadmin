@@ -7,11 +7,12 @@ import { layerEarnedAsOf, dayCount } from '@/lib/premium';
 import { loadEntries, loadPolicyAsOf } from '@/lib/policy/view';
 import { thresholdMinor } from '@/lib/approvals';
 import AsOfPicker from '@/components/as-of';
-import EndorseForm from './endorse-form';
+import EndorseForm, { type Baseline } from './endorse-form';
 import CorrectForm from './correct-form';
 import CancelForm from './cancel-form';
 import ClaimForm from './claim-form';
 import { coverEndsOn, listClaims } from '@/lib/claims';
+import type { Exposure } from '@/lib/rating';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +37,28 @@ export default async function PolicyDetail(props: {
   const entries = await loadEntries(id);
   const claims = await listClaims(id);
   const coverEnd = await coverEndsOn(id, view.header.termEnd);
+
+  const scheduleRows = await sql<
+    { effective_date: string; limit_minor: bigint; deductible_minor: bigint; exposures: Exposure[] }[]
+  >`
+    select effective_date::text, limit_minor, deductible_minor, exposures
+      from policy_versions v
+     where v.policy_id = ${id}::uuid
+       and v.kind <> 'reversal'
+       and v.id not in (
+         select reverses_version_id from policy_versions
+          where policy_id = ${id}::uuid and reverses_version_id is not null
+       )
+     order by v.effective_date, v.booked_at
+  `;
+
+  const schedule: Baseline[] = scheduleRows.map((r) => ({
+    effectiveDate: r.effective_date,
+    limit: centsToInput(BigInt(r.limit_minor)),
+    deductible: centsToInput(BigInt(r.deductible_minor)),
+    vehicles: (r.exposures ?? []).filter((e) => e.kind === 'vehicle').length,
+    squareFeet: (r.exposures ?? []).reduce((t, e) => t + (e.kind === 'location' ? e.squareFeet : 0), 0),
+  }));
 
   const charges = await sql<
     { id: string; reason: string; total_minor: bigint; effective_date: string; status: string }[]
@@ -238,17 +261,7 @@ export default async function PolicyDetail(props: {
               policyId={id}
               termStart={header.termStart}
               termEnd={header.termEnd}
-              currentLimit={centsToInput(view.version?.limitMinor ?? 0n)}
-              currentDeductible={centsToInput(view.version?.deductibleMinor ?? 0n)}
-              currentVehicles={
-                view.version?.exposures.filter((e) => e.kind === 'vehicle').length ?? 0
-              }
-              currentSquareFeet={
-                view.version?.exposures.reduce(
-                  (t, e) => t + (e.kind === 'location' ? e.squareFeet : 0),
-                  0,
-                ) ?? 0
-              }
+              schedule={schedule}
               thresholdLabel={format(thresholdMinor())}
             />
           </section>
