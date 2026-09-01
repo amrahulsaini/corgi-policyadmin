@@ -98,11 +98,8 @@ the server.
 
 | File | What it covers |
 | --- | --- |
-| `docs/BRIEF.md` | The brief as received, verbatim |
-| `docs/STATUS.md` | Requirement-by-requirement compliance, how production runs, submission checklist |
-| `docs/CODEBASE.md` | Every screen, its URL, and the file behind it |
 | `docs/decisions.md` | The decision log, written as the work happened |
-| `docs/cut-list.md` | What was not built, and why |
+| `docs/cut-list.md` | What was not built, why, and what week two looks like |
 
 ## Layout
 
