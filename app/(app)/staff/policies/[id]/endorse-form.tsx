@@ -1,7 +1,7 @@
 'use client';
 
-import { useActionState, useState } from 'react';
-import { endorse, type ActionState } from './actions';
+import { useActionState, useEffect, useState } from 'react';
+import { endorse, quoteEndorsement, type ActionState, type EndorseQuote } from './actions';
 
 export type Baseline = {
   effectiveDate: string;
@@ -46,6 +46,34 @@ export default function EndorseForm({
   const [squareFeet, setSquareFeet] = useState(String(base?.squareFeet ?? 0));
 
   const later = schedule.filter((s) => s.effectiveDate > effectiveDate);
+
+  const [quote, setQuote] = useState<EndorseQuote | null>(null);
+  const [quoting, setQuoting] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    setQuoting(true);
+    const timer = setTimeout(() => {
+      quoteEndorsement({
+        policyId,
+        effectiveDate,
+        limit,
+        deductible,
+        vehicles: Number(vehicles),
+        squareFeet: Number(squareFeet),
+      })
+        .then((next) => {
+          if (live) setQuote(next);
+        })
+        .finally(() => {
+          if (live) setQuoting(false);
+        });
+    }, 300);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [policyId, effectiveDate, limit, deductible, vehicles, squareFeet]);
 
   function pickDate(next: string) {
     setEffectiveDate(next);
@@ -180,6 +208,8 @@ export default function EndorseForm({
         </p>
       ) : null}
 
+      <PriceBox quote={quote} quoting={quoting} effectiveDate={effectiveDate} />
+
       <label className="flex items-start gap-2.5 rounded-md bg-[var(--line-soft)] px-3 py-2.5">
         <input
           type="checkbox"
@@ -222,5 +252,115 @@ export default function EndorseForm({
         </p>
       </div>
     </form>
+  );
+}
+
+function PriceBox({
+  quote,
+  quoting,
+  effectiveDate,
+}: {
+  quote: EndorseQuote | null;
+  quoting: boolean;
+  effectiveDate: string;
+}) {
+  if (!quote) {
+    return (
+      <div className="rounded-md border border-[var(--line)] px-3 py-2.5 text-xs text-[var(--ink-faint)]">
+        {quoting ? 'Pricing…' : 'Fill the cover above and the price appears here before you book.'}
+      </div>
+    );
+  }
+
+  if (quote.error) {
+    return (
+      <div className="rounded-md bg-[var(--bad-soft)] text-[var(--bad)] px-3 py-2.5 text-xs">
+        {quote.error}
+      </div>
+    );
+  }
+
+  const refund = quote.direction === 'refund';
+  const flat = quote.direction === 'none';
+
+  return (
+    <div className={`rounded-md border px-4 py-3 ${refund ? 'border-[var(--warn)] bg-[var(--warn-soft)]' : 'border-[var(--line)] bg-[var(--surface)]'} ${quoting ? 'opacity-60' : ''}`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <span className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-faint)]">
+          {flat ? 'No money moves' : refund ? 'Owed back to the insured' : 'Due from the insured'}
+        </span>
+        <span className="num text-xl font-semibold">{quote.total}</span>
+      </div>
+
+      <div className="mt-3 grid lg:grid-cols-2 gap-x-8 gap-y-4 text-xs">
+        <div>
+          <div className="font-semibold mb-1.5">How the new annual premium is built</div>
+          <table className="sheet">
+            <tbody>
+              {quote.components.map((c, i) => (
+                <tr key={i}>
+                  <td>
+                    {c.label}
+                    <div className="text-[10px] text-[var(--ink-faint)]">{c.basis}</div>
+                  </td>
+                  <td className="num text-right align-top">{c.amount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <div className="font-semibold mb-1.5">How that becomes today&rsquo;s charge</div>
+          <table className="sheet">
+            <tbody>
+              <tr>
+                <td>Annual premium now</td>
+                <td className="num text-right">{quote.currentAnnual}</td>
+              </tr>
+              <tr>
+                <td>Annual premium after</td>
+                <td className="num text-right">{quote.newAnnual}</td>
+              </tr>
+              <tr>
+                <td className="font-medium">Annual difference</td>
+                <td className="num text-right font-medium">{quote.annualDelta}</td>
+              </tr>
+              <tr>
+                <td>
+                  Pro rata
+                  <div className="text-[10px] text-[var(--ink-faint)]">
+                    {quote.daysRemaining} of {quote.termDays} days left from {effectiveDate}
+                  </div>
+                </td>
+                <td className="num text-right align-top">{quote.proRata}</td>
+              </tr>
+              {quote.surcharges.map((s, i) => (
+                <tr key={i}>
+                  <td>
+                    {s.label}
+                    <div className="text-[10px] text-[var(--ink-faint)]">{s.basis}</div>
+                  </td>
+                  <td className="num text-right align-top">{s.amount}</td>
+                </tr>
+              ))}
+              <tr>
+                <td className="font-semibold">Total</td>
+                <td className="num text-right font-semibold">{quote.total}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p className="text-[11px] text-[var(--ink-soft)] mt-3">
+        {flat
+          ? 'This changes nothing that carries a premium, so it cannot be booked.'
+          : refund
+            ? 'Cover is going down, so this is a refund rather than a charge. The policy fee stays — it was earned at inception.'
+            : 'The policy fee is not charged again; only the percentage taxes ride on the extra premium.'}
+        {quote.needsApproval ? ' This is above the threshold, so it goes to a second approver instead of posting.' : ''}
+      </p>
+    </div>
   );
 }

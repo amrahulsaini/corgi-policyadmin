@@ -6,7 +6,7 @@ import { requestApproval, thresholdMinor } from '@/lib/approvals';
 import { format, abs, minor } from '@/lib/money';
 import { applyEndorsement, priceEndorsement } from '@/lib/policy/endorse';
 import { correctEndorsementDate } from '@/lib/policy/correct';
-import type { Exposure } from '@/lib/rating';
+import { rate, type Exposure } from '@/lib/rating';
 import { loadHeader } from '@/lib/policy/view';
 import { cancelPolicy, type CancelMethod } from '@/lib/policy/cancel';
 import { openClaim } from '@/lib/claims';
@@ -197,5 +197,126 @@ export async function fileClaim(_prev: ActionState, form: FormData): Promise<Act
     };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Could not open the claim.', notice: null };
+  }
+}
+
+export type QuoteLine = { label: string; amount: string; basis: string };
+
+export type EndorseQuote = {
+  error: string | null;
+  currentAnnual: string;
+  newAnnual: string;
+  annualDelta: string;
+  daysRemaining: number;
+  termDays: number;
+  proRata: string;
+  surcharges: QuoteLine[];
+  surchargeTotal: string;
+  total: string;
+  direction: 'charge' | 'refund' | 'none';
+  needsApproval: boolean;
+  components: QuoteLine[];
+};
+
+export async function quoteEndorsement(form: {
+  policyId: string;
+  effectiveDate: string;
+  limit: string;
+  deductible: string;
+  vehicles: number;
+  squareFeet: number;
+}): Promise<EndorseQuote | null> {
+  await requireRole('staff');
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(form.effectiveDate)) return null;
+  if (!Number.isInteger(form.vehicles) || form.vehicles < 0 || form.vehicles > 50) return null;
+  if (!Number.isInteger(form.squareFeet) || form.squareFeet < 0 || form.squareFeet > 500_000) {
+    return null;
+  }
+
+  const header = await loadHeader(form.policyId);
+  if (!header) return null;
+
+  const exposures: Exposure[] = [];
+  for (let i = 0; i < form.vehicles; i += 1) {
+    exposures.push({
+      kind: 'vehicle',
+      description: `Scheduled unit ${i + 1}`,
+      vin: `TESTVIN${String(i + 1).padStart(10, '0')}`,
+      garageState: header.stateCode,
+    });
+  }
+  if (form.squareFeet > 0) {
+    exposures.push({
+      kind: 'location',
+      description: 'Primary premises',
+      squareFeet: form.squareFeet,
+      state: header.stateCode,
+    });
+  }
+
+  const empty = {
+    currentAnnual: '',
+    newAnnual: '',
+    annualDelta: '',
+    daysRemaining: 0,
+    termDays: 0,
+    proRata: '',
+    surcharges: [],
+    surchargeTotal: '',
+    total: '',
+    direction: 'none' as const,
+    needsApproval: false,
+    components: [],
+  };
+
+  try {
+    const pricing = await priceEndorsement({
+      policyId: form.policyId,
+      effectiveDate: form.effectiveDate,
+      limitMinor: minor(form.limit),
+      deductibleMinor: minor(form.deductible),
+      exposures,
+      description: 'quote',
+      actor: 'quote',
+    });
+
+    const rated = rate({
+      productCode: header.productCode,
+      stateCode: header.stateCode,
+      limitMinor: minor(form.limit),
+      deductibleMinor: minor(form.deductible),
+      exposures,
+    });
+
+    return {
+      error: null,
+      currentAnnual: format(pricing.currentAnnualMinor),
+      newAnnual: format(pricing.newAnnualMinor),
+      annualDelta: format(pricing.annualDeltaMinor),
+      daysRemaining: pricing.daysRemaining,
+      termDays: pricing.termDays,
+      proRata: format(pricing.proRataPremiumMinor),
+      surcharges: pricing.surcharges.map((s) => ({
+        label: s.label,
+        amount: format(s.amountMinor),
+        basis: s.basis,
+      })),
+      surchargeTotal: format(pricing.surchargeTotalMinor),
+      total: format(pricing.totalMinor),
+      direction:
+        pricing.totalMinor > 0n ? 'charge' : pricing.totalMinor < 0n ? 'refund' : 'none',
+      needsApproval: abs(pricing.totalMinor) > thresholdMinor(),
+      components: rated.components.map((c) => ({
+        label: c.label,
+        amount: format(c.amountMinor),
+        basis: c.basis,
+      })),
+    };
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : 'This cannot be priced.',
+      ...empty,
+    };
   }
 }
