@@ -80,6 +80,34 @@ No balance is stored anywhere. `ledger_balance(account, as_of, known_at)` sums t
 date arguments are optional — which is what makes "the policy as it stood on 3 May" and "what we
 believed on Wednesday" the same query with different parameters.
 
+## The agent surface
+
+A JSON-RPC MCP server at `/api/mcp`. `GET` is open and describes itself — tools, transport, and the
+list of operations no autonomous caller may perform. `POST` needs `Authorization: Bearer $MCP_TOKEN`.
+
+| Tool | Kind | What it does |
+| --- | --- | --- |
+| `policy_as_of` | read | The policy as it stood on any date — cover, limits, premium, versions |
+| `explain_balance` | read | Any ledger account, with the entries that make up the figure |
+| `list_reconciliation_breaks` | read | Open breaks against the provider, with their age |
+| `propose_endorsement` | write | Prices the change and files it in the human approval queue |
+
+`propose_endorsement` never posts. It raises an approval, and the agent can never be the approver —
+the same database constraint that stops a person approving their own request stops the agent too.
+
+Six operations are refused outright, each with its reasoning served alongside it at `GET /api/mcp`
+under `never_delegated`:
+
+- Cancelling a policy and issuing the refund
+- Paying a claim
+- Posting a correction — reversal plus re-book
+- Adjusting commission or issuing a clawback
+- Approving anything, including its own proposals
+- Changing a broker KYB status
+
+Each one either moves money outward on a real rail, decides who may transact at all, or rewrites
+history. None of those should turn on a caller that can be talked into it.
+
 ## Running it
 
 ```bash
