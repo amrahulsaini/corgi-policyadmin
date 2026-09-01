@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { currentUser, landingFor } from '@/lib/auth';
+import Logo from '@/components/logo';
 import LoginForm from './form';
 
 export const dynamic = 'force-dynamic';
@@ -21,7 +22,7 @@ export default async function LoginPage() {
       <section className="hidden lg:flex flex-col justify-between p-12 border-r rule">
         <div>
           <div className="flex items-center gap-2.5">
-            <span className="w-7 h-7 rounded-md bg-[var(--accent)] shadow-[var(--shadow-card)]" />
+            <Logo size={30} />
             <span className="font-semibold tracking-tight">Corgi</span>
             <span className="text-[var(--ink-faint)]">Policy Administration</span>
           </div>

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Logo from '@/components/logo';
 import Nav from '@/components/nav';
 import { logout } from '@/app/login/actions';
 import type { SessionUser } from '@/lib/auth';
@@ -40,7 +41,7 @@ export default function Shell({
       <header className="border-b rule bg-[var(--surface)]/85 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <span className="w-6 h-6 rounded-md bg-[var(--accent)] shadow-[var(--shadow-card)]" />
+            <Logo size={26} />
             <span className="font-semibold tracking-tight text-sm">Corgi</span>
           </Link>
 
