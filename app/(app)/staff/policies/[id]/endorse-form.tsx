@@ -80,7 +80,7 @@ export default function EndorseForm({
 
         <div>
           <label htmlFor="vehicles" className="block text-xs font-semibold mb-1.5">
-            Scheduled vehicles
+            Scheduled vehicles after this change
           </label>
           <input
             id="vehicles"
@@ -91,11 +91,15 @@ export default function EndorseForm({
             defaultValue={currentVehicles}
             className="field num"
           />
+          <p className="text-[11px] text-[var(--ink-faint)] mt-1">
+            {currentVehicles} on the policy today. This is the new total, not how many to add — to
+            put a fourth on cover, type {currentVehicles + 1}.
+          </p>
         </div>
 
         <div>
           <label htmlFor="squareFeet" className="block text-xs font-semibold mb-1.5">
-            Floor area (sq ft)
+            Floor area after this change (sq ft)
           </label>
           <input
             id="squareFeet"
@@ -107,6 +111,10 @@ export default function EndorseForm({
             defaultValue={currentSquareFeet}
             className="field num"
           />
+          <p className="text-[11px] text-[var(--ink-faint)] mt-1">
+            {currentSquareFeet.toLocaleString()} sq ft scheduled today. The whole schedule is
+            rewritten at this date, so every version can be read on its own.
+          </p>
         </div>
 
         <div className="sm:col-span-1">
@@ -116,7 +124,7 @@ export default function EndorseForm({
           <input
             id="description"
             name="description"
-            defaultValue="Add scheduled vehicle"
+            placeholder="Add a fourth scheduled vehicle"
             className="field"
           />
         </div>
