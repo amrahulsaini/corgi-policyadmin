@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Nav from '@/components/nav';
 import { logout } from '@/app/login/actions';
 import type { SessionUser } from '@/lib/auth';
 
@@ -36,24 +37,14 @@ export default function Shell({
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b rule bg-[var(--surface)] sticky top-0 z-10">
+      <header className="border-b rule bg-[var(--surface)]/85 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-[1400px] mx-auto px-6 h-14 flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <span className="w-6 h-6 rounded bg-[var(--accent)]" />
+            <span className="w-6 h-6 rounded-md bg-[var(--accent)] shadow-[var(--shadow-card)]" />
             <span className="font-semibold tracking-tight text-sm">Corgi</span>
           </Link>
 
-          <nav className="flex items-center gap-1 overflow-x-auto">
-            {nav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="px-2.5 py-1.5 rounded-md text-sm text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)] whitespace-nowrap"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
+          <Nav items={nav} />
 
           <div className="ml-auto flex items-center gap-4 shrink-0">
             <div className="text-right leading-tight hidden sm:block">

@@ -7,8 +7,9 @@ export const dynamic = 'force-dynamic';
 const DEMO = [
   { role: 'Staff', email: 'dana@corgi.test', note: 'issues, corrects, reconciles' },
   { role: 'Staff', email: 'marcus@corgi.test', note: 'second approver' },
-  { role: 'Broker', email: 'kim@meridian.test', note: 'KYB approved, can bind' },
-  { role: 'Broker', email: 'sam@harbor.test', note: 'KYB unverified, cannot bind' },
+  { role: 'Broker', email: 'sam@harbor.test', note: 'KYB approved, can bind' },
+  { role: 'Broker', email: 'kim@meridian.test', note: 'KYB unverified, cannot bind' },
+  { role: 'Customer', email: 'ops@loopwar.test', note: 'read-only policy view' },
 ];
 
 export default async function LoginPage() {
@@ -20,7 +21,7 @@ export default async function LoginPage() {
       <section className="hidden lg:flex flex-col justify-between p-12 border-r rule">
         <div>
           <div className="flex items-center gap-2.5">
-            <span className="w-7 h-7 rounded-md bg-[var(--accent)]" />
+            <span className="w-7 h-7 rounded-md bg-[var(--accent)] shadow-[var(--shadow-card)]" />
             <span className="font-semibold tracking-tight">Corgi</span>
             <span className="text-[var(--ink-faint)]">Policy Administration</span>
           </div>
