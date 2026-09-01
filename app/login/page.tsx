@@ -73,8 +73,8 @@ export default async function LoginPage() {
             </summary>
             <div className="px-4 pb-4 border-t rule pt-3">
               <p className="text-xs text-[var(--ink-soft)]">
-                Sandbox logins for reviewing this build. Password for all:{' '}
-                <span className="num">corgi-demo-2026</span>
+                Sandbox logins for reviewing this build. The password was supplied with the
+                submission, not published here.
               </p>
               <ul className="mt-3 space-y-2">
                 {DEMO.map((d) => (

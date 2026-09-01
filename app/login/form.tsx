@@ -17,7 +17,7 @@ export default function LoginForm() {
           name="email"
           type="email"
           autoComplete="username"
-          defaultValue="dana@corgi.test"
+          placeholder="dana@corgi.test"
           className="field num"
         />
       </div>
@@ -31,7 +31,6 @@ export default function LoginForm() {
           name="password"
           type="password"
           autoComplete="current-password"
-          defaultValue="corgi-demo-2026"
           className="field num"
         />
       </div>
