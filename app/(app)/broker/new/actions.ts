@@ -3,11 +3,12 @@
 import { redirect } from 'next/navigation';
 import { requireRole } from '@/lib/auth';
 import { sql } from '@/lib/db';
-import { minor } from '@/lib/money';
+import { format, minor } from '@/lib/money';
 import { issuePolicy } from '@/lib/policy/issue';
 import { createPremiumCheckout } from '@/lib/payments/collect';
 import { surchargesFor } from '@/lib/tax';
-import type { Exposure } from '@/lib/rating';
+import { rate, type Exposure } from '@/lib/rating';
+import { anniversary } from '@/lib/premium';
 import { FILED_STATES } from './filed-states';
 
 export type QuoteState = { error: string | null };
@@ -128,4 +129,117 @@ export async function bindAndCollect(
   }
 
   redirect(checkoutUrl);
+}
+
+export type QuoteLine = { label: string; amount: string; basis: string };
+
+export type BindQuote = {
+  error: string | null;
+  components: QuoteLine[];
+  annualPremium: string;
+  surcharges: QuoteLine[];
+  surchargeTotal: string;
+  total: string;
+  stateCode: string;
+  termStart: string;
+  termEnd: string;
+};
+
+export async function quoteRisk(input: {
+  customerId: string;
+  newState: string;
+  termStart: string;
+  limit: string;
+  deductible: string;
+  vehicles: number;
+  squareFeet: number;
+}): Promise<BindQuote | null> {
+  await requireRole('broker');
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.termStart)) return null;
+  if (!Number.isInteger(input.vehicles) || input.vehicles < 0 || input.vehicles > 50) return null;
+  if (!Number.isInteger(input.squareFeet) || input.squareFeet < 0 || input.squareFeet > 500_000) {
+    return null;
+  }
+
+  let stateCode = input.newState.trim().toUpperCase();
+
+  if (input.customerId !== 'new') {
+    const [customer] = await sql<{ state_code: string }[]>`
+      select state_code from customers where id = ${input.customerId}::uuid
+    `;
+    if (!customer) return null;
+    stateCode = customer.state_code;
+  }
+
+  const blank = {
+    components: [],
+    annualPremium: '',
+    surcharges: [],
+    surchargeTotal: '',
+    total: '',
+    stateCode,
+    termStart: input.termStart,
+    termEnd: '',
+  };
+
+  if (!stateCode) {
+    return { error: 'Pick the state the insured sits in.', ...blank };
+  }
+
+  const exposures: Exposure[] = [];
+  for (let i = 0; i < input.vehicles; i += 1) {
+    exposures.push({
+      kind: 'vehicle',
+      description: `Scheduled unit ${i + 1}`,
+      vin: `TESTVIN${String(i + 1).padStart(10, '0')}`,
+      garageState: stateCode,
+    });
+  }
+  if (input.squareFeet > 0) {
+    exposures.push({
+      kind: 'location',
+      description: 'Primary premises',
+      squareFeet: input.squareFeet,
+      state: stateCode,
+    });
+  }
+
+  try {
+    const rated = rate({
+      productCode: 'CGL',
+      stateCode,
+      limitMinor: minor(input.limit),
+      deductibleMinor: minor(input.deductible),
+      exposures,
+    });
+
+    const surcharges = await surchargesFor(stateCode, rated.annualPremiumMinor, input.termStart);
+    const surchargeTotal = surcharges.reduce((t, s) => t + s.amountMinor, 0n);
+
+    return {
+      error: null,
+      components: rated.components.map((c) => ({
+        label: c.label,
+        amount: format(c.amountMinor),
+        basis: c.basis,
+      })),
+      annualPremium: format(rated.annualPremiumMinor),
+      surcharges: surcharges.map((s) => ({
+        label: `${stateCode} ${s.label}`,
+        amount: format(s.amountMinor),
+        basis: s.basis,
+      })),
+      surchargeTotal: format(surchargeTotal),
+      total: format(rated.annualPremiumMinor + surchargeTotal),
+      stateCode,
+      termStart: input.termStart,
+      termEnd: anniversary(input.termStart),
+    };
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err.message : 'This risk cannot be rated.',
+      ...blank,
+    };
+  }
 }

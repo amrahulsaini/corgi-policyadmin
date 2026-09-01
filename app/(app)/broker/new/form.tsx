@@ -1,7 +1,7 @@
 'use client';
 
-import { useActionState, useState } from 'react';
-import { bindAndCollect, type QuoteState } from './actions';
+import { useActionState, useEffect, useState } from 'react';
+import { bindAndCollect, quoteRisk, type BindQuote, type QuoteState } from './actions';
 import { FILED_STATES } from './filed-states';
 
 const LIMITS = ['1000000.00', '2000000.00', '5000000.00'];
@@ -21,6 +21,42 @@ export default function QuoteForm({
   });
   const [insured, setInsured] = useState(customers[0]?.id ?? 'new');
   const isNew = insured === 'new';
+
+  const [newState, setNewState] = useState('CA');
+  const [termStart, setTermStart] = useState(today());
+  const [limit, setLimit] = useState(LIMITS[0]);
+  const [deductible, setDeductible] = useState(DEDUCTIBLES[1]);
+  const [vehicles, setVehicles] = useState('3');
+  const [squareFeet, setSquareFeet] = useState('12000');
+
+  const [quote, setQuote] = useState<BindQuote | null>(null);
+  const [quoting, setQuoting] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    setQuoting(true);
+    const timer = setTimeout(() => {
+      quoteRisk({
+        customerId: insured,
+        newState,
+        termStart,
+        limit,
+        deductible,
+        vehicles: Number(vehicles),
+        squareFeet: Number(squareFeet),
+      })
+        .then((next) => {
+          if (live) setQuote(next);
+        })
+        .finally(() => {
+          if (live) setQuoting(false);
+        });
+    }, 300);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [insured, newState, termStart, limit, deductible, vehicles, squareFeet]);
 
   return (
     <form action={action} className="card p-5 space-y-5">
@@ -82,7 +118,13 @@ export default function QuoteForm({
             <label htmlFor="newState" className="block text-xs font-semibold mb-1.5">
               Risk state
             </label>
-            <select id="newState" name="newState" className="field" defaultValue="CA">
+            <select
+              id="newState"
+              name="newState"
+              className="field"
+              value={newState}
+              onChange={(e) => setNewState(e.target.value)}
+            >
               {FILED_STATES.map((s) => (
                 <option key={s} value={s}>
                   {s}
@@ -105,7 +147,8 @@ export default function QuoteForm({
             id="termStart"
             name="termStart"
             type="date"
-            defaultValue={today()}
+            value={termStart}
+            onChange={(e) => setTermStart(e.target.value)}
             className="field num"
           />
           <p className="text-[11px] text-[var(--ink-faint)] mt-1">
@@ -117,7 +160,13 @@ export default function QuoteForm({
           <label htmlFor="limit" className="block text-xs font-semibold mb-1.5">
             Occurrence limit
           </label>
-          <select id="limit" name="limit" className="field num" defaultValue={LIMITS[0]}>
+          <select
+            id="limit"
+            name="limit"
+            className="field num"
+            value={limit}
+            onChange={(e) => setLimit(e.target.value)}
+          >
             {LIMITS.map((l) => (
               <option key={l} value={l}>
                 ${Number(l).toLocaleString('en-US')}
@@ -133,7 +182,13 @@ export default function QuoteForm({
           <label htmlFor="deductible" className="block text-xs font-semibold mb-1.5">
             Deductible
           </label>
-          <select id="deductible" name="deductible" className="field num" defaultValue={DEDUCTIBLES[1]}>
+          <select
+            id="deductible"
+            name="deductible"
+            className="field num"
+            value={deductible}
+            onChange={(e) => setDeductible(e.target.value)}
+          >
             {DEDUCTIBLES.map((d) => (
               <option key={d} value={d}>
                 ${Number(d).toLocaleString('en-US')}
@@ -155,7 +210,8 @@ export default function QuoteForm({
             type="number"
             min={0}
             max={50}
-            defaultValue={3}
+            value={vehicles}
+            onChange={(e) => setVehicles(e.target.value)}
             className="field num"
           />
           <p className="text-[11px] text-[var(--ink-faint)] mt-1">
@@ -175,10 +231,13 @@ export default function QuoteForm({
           min={0}
           max={500000}
           step={100}
-          defaultValue={12000}
+          value={squareFeet}
+          onChange={(e) => setSquareFeet(e.target.value)}
           className="field num"
         />
       </div>
+
+      <QuoteBox quote={quote} quoting={quoting} />
 
       {state.error ? (
         <p role="alert" className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded-md px-3 py-2">
@@ -196,5 +255,90 @@ export default function QuoteForm({
         </p>
       </div>
     </form>
+  );
+}
+
+function QuoteBox({ quote, quoting }: { quote: BindQuote | null; quoting: boolean }) {
+  if (!quote) {
+    return (
+      <div className="rounded-md border border-[var(--line)] px-3 py-2.5 text-xs text-[var(--ink-faint)]">
+        {quoting ? 'Rating…' : 'Fill the risk above and the premium appears here before you bind.'}
+      </div>
+    );
+  }
+
+  if (quote.error) {
+    return (
+      <div className="rounded-md bg-[var(--bad-soft)] text-[var(--bad)] px-3 py-2.5 text-xs">
+        {quote.error}
+      </div>
+    );
+  }
+
+  return (
+    <div className={`rounded-md border border-[var(--line)] px-4 py-3 ${quoting ? 'opacity-60' : ''}`}>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <span className="text-xs font-semibold uppercase tracking-wide text-[var(--ink-faint)]">
+          Payable at checkout
+        </span>
+        <span className="num text-xl font-semibold">{quote.total}</span>
+      </div>
+      <p className="text-[11px] text-[var(--ink-faint)] mt-1">
+        Term {quote.termStart} to {quote.termEnd}. Rates filed in {quote.stateCode}.
+      </p>
+
+      <div className="mt-3 grid lg:grid-cols-2 gap-x-8 gap-y-4 text-xs">
+        <div>
+          <div className="font-semibold mb-1.5">How the premium is rated</div>
+          <table className="sheet">
+            <tbody>
+              {quote.components.map((c, i) => (
+                <tr key={i}>
+                  <td>
+                    {c.label}
+                    <div className="text-[10px] text-[var(--ink-faint)]">{c.basis}</div>
+                  </td>
+                  <td className="num text-right align-top">{c.amount}</td>
+                </tr>
+              ))}
+              <tr>
+                <td className="font-semibold">Annual premium</td>
+                <td className="num text-right font-semibold">{quote.annualPremium}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <div className="font-semibold mb-1.5">What rides alongside it</div>
+          <table className="sheet">
+            <tbody>
+              <tr>
+                <td>Annual premium</td>
+                <td className="num text-right">{quote.annualPremium}</td>
+              </tr>
+              {quote.surcharges.map((s, i) => (
+                <tr key={i}>
+                  <td>
+                    {s.label}
+                    <div className="text-[10px] text-[var(--ink-faint)]">{s.basis}</div>
+                  </td>
+                  <td className="num text-right align-top">{s.amount}</td>
+                </tr>
+              ))}
+              <tr>
+                <td className="font-semibold">Charged to the insured</td>
+                <td className="num text-right font-semibold">{quote.total}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p className="text-[11px] text-[var(--ink-soft)] mt-3">
+        Taxes and fees are collected with the premium but are never part of it. Commission is a
+        share of the premium alone, and it books when this settles — not when you bind.
+      </p>
+    </div>
   );
 }
