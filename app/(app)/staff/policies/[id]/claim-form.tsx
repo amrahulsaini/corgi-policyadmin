@@ -7,11 +7,13 @@ export default function ClaimForm({
   policyId,
   termStart,
   termEnd,
+  coverEnd,
   insuredName,
 }: {
   policyId: string;
   termStart: string;
   termEnd: string;
+  coverEnd: string;
   insuredName: string;
 }) {
   const [state, action, pending] = useActionState<ActionState, FormData>(fileClaim, {
@@ -35,12 +37,14 @@ export default function ClaimForm({
             name="lossDate"
             type="date"
             min={termStart}
-            max={termEnd}
-            defaultValue={today > termEnd ? termEnd : today}
+            max={coverEnd}
+            defaultValue={today > coverEnd ? coverEnd : today}
             className="field num"
           />
           <p className="text-[11px] text-[var(--ink-faint)] mt-1">
-            Must fall inside the term. The limit in force on this date is the one that applies.
+            {coverEnd === termEnd
+              ? 'Must fall inside the term. The limit in force on this date is the one that applies.'
+              : `Cover ran ${termStart} to ${coverEnd}, when the policy was cancelled. A loss inside that window is still claimable; one after it is not.`}
           </p>
         </div>
 

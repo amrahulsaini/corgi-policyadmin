@@ -12,7 +12,7 @@ import { cancelPolicy, type CancelMethod } from '@/lib/policy/cancel';
 import { openClaim } from '@/lib/claims';
 import { verifyPayee } from '@/lib/bank/verify';
 
-export type ActionState = { error: string | null; notice: string | null };
+export type ActionState = { error: string | null; notice: string | null; link?: string | null };
 
 export async function endorse(_prev: ActionState, form: FormData): Promise<ActionState> {
   const user = await requireRole('staff');
@@ -24,6 +24,7 @@ export async function endorse(_prev: ActionState, form: FormData): Promise<Actio
   const vehicles = Number(form.get('vehicles') ?? 0);
   const squareFeet = Number(form.get('squareFeet') ?? 0);
   const description = String(form.get('description') ?? '').trim();
+  const settleNow = String(form.get('settleNow') ?? '') === 'on';
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(effectiveDate)) {
     return { error: 'Give a valid effective date.', notice: null };
@@ -62,6 +63,7 @@ export async function endorse(_prev: ActionState, form: FormData): Promise<Actio
     exposures,
     description,
     actor: user.email,
+    settleNow,
   };
 
   try {
@@ -80,6 +82,7 @@ export async function endorse(_prev: ActionState, form: FormData): Promise<Actio
           actor: user.email,
           policyNumber: header.policyNumber,
           proRataMinor: pricing.proRataPremiumMinor.toString(),
+          settleNow: settleNow ? 'yes' : 'no',
         },
         amountMinor: pricing.totalMinor,
         requestedBy: user.id,
@@ -97,7 +100,8 @@ export async function endorse(_prev: ActionState, form: FormData): Promise<Actio
     revalidatePath(`/staff/policies/${policyId}`);
     return {
       error: null,
-      notice: `Endorsement booked. ${format(applied.pricing.proRataPremiumMinor)} premium over ${applied.pricing.daysRemaining} of ${applied.pricing.termDays} days, plus ${format(applied.pricing.surchargeTotalMinor)} in surcharges.`,
+      notice: `Endorsement booked. ${format(applied.pricing.proRataPremiumMinor)} premium over ${applied.pricing.daysRemaining} of ${applied.pricing.termDays} days, plus ${format(applied.pricing.surchargeTotalMinor)} in surcharges. ${applied.settlement.note}`,
+      link: applied.settlement.kind === 'charge' ? applied.settlement.checkoutUrl : null,
     };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Endorsement failed.', notice: null };

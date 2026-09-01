@@ -25,6 +25,7 @@ export default function EndorseForm({
   const [state, action, pending] = useActionState<ActionState, FormData>(endorse, {
     error: null,
     notice: null,
+    link: null,
   });
 
   return (
@@ -130,15 +131,42 @@ export default function EndorseForm({
         </div>
       </div>
 
+      <label className="flex items-start gap-2.5 rounded-md bg-[var(--line-soft)] px-3 py-2.5">
+        <input
+          type="checkbox"
+          name="settleNow"
+          defaultChecked
+          className="mt-0.5 accent-[var(--accent)]"
+        />
+        <span className="text-xs">
+          <span className="font-semibold">Move the money too</span>
+          <span className="block text-[var(--ink-soft)] mt-0.5">
+            More premium raises a Stripe checkout for the insured. Less premium sends a real Stripe
+            refund against the payment they already made. Leave it off to book the endorsement and
+            let the balance stand as a receivable or a payable.
+          </span>
+        </span>
+      </label>
+
       {state.error ? (
         <p role="alert" className="text-sm text-[var(--bad)] bg-[var(--bad-soft)] rounded-md px-3 py-2">
           {state.error}
         </p>
       ) : null}
       {state.notice ? (
-        <p className="text-sm text-[var(--good)] bg-[var(--good-soft)] rounded-md px-3 py-2">
-          {state.notice}
-        </p>
+        <div className="text-sm text-[var(--good)] bg-[var(--good-soft)] rounded-md px-3 py-2 space-y-2">
+          <p>{state.notice}</p>
+          {state.link ? (
+            <a
+              href={state.link}
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-ghost text-xs"
+            >
+              Open the payment link
+            </a>
+          ) : null}
+        </div>
       ) : null}
 
       <div className="flex flex-wrap items-center gap-3">

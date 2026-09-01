@@ -104,7 +104,7 @@ export async function decideApproval(input: {
   deciderId: string;
   approve: boolean;
   note: string;
-}): Promise<{ status: 'approved' | 'rejected'; resultRef: string | null }> {
+}): Promise<{ status: 'approved' | 'rejected'; resultRef: string | null; settlementNote: string | null; checkoutUrl: string | null }> {
   const [approval] = await sql<
     {
       id: string;
@@ -126,10 +126,12 @@ export async function decideApproval(input: {
              decided_at = now(), decision_note = ${input.note}
        where id = ${input.approvalId}::uuid
     `;
-    return { status: 'rejected', resultRef: null };
+    return { status: 'rejected', resultRef: null, settlementNote: null, checkoutUrl: null };
   }
 
   let resultRef: string | null = null;
+  let settlementNote: string | null = null;
+  let checkoutUrl: string | null = null;
 
   if (approval.kind === 'endorsement') {
     const p = approval.payload;
@@ -141,9 +143,12 @@ export async function decideApproval(input: {
       exposures: JSON.parse(p.exposures),
       description: p.description,
       actor: p.actor,
+      settleNow: p.settleNow !== 'no',
     };
     const applied = await applyEndorsement(endorsement);
     resultRef = applied.versionId;
+    settlementNote = applied.settlement.note;
+    checkoutUrl = applied.settlement.kind === 'charge' ? applied.settlement.checkoutUrl : null;
   } else {
     throw new Error(`no executor wired for approval kind ${approval.kind}`);
   }
@@ -155,5 +160,5 @@ export async function decideApproval(input: {
      where id = ${input.approvalId}::uuid
   `;
 
-  return { status: 'approved', resultRef };
+  return { status: 'approved', resultRef, settlementNote, checkoutUrl };
 }

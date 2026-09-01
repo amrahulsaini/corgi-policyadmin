@@ -11,7 +11,7 @@ import EndorseForm from './endorse-form';
 import CorrectForm from './correct-form';
 import CancelForm from './cancel-form';
 import ClaimForm from './claim-form';
-import { listClaims } from '@/lib/claims';
+import { coverEndsOn, listClaims } from '@/lib/claims';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +35,7 @@ export default async function PolicyDetail(props: {
 
   const entries = await loadEntries(id);
   const claims = await listClaims(id);
+  const coverEnd = await coverEndsOn(id, view.header.termEnd);
 
   const charges = await sql<
     { id: string; reason: string; total_minor: bigint; effective_date: string; status: string }[]
@@ -335,14 +336,20 @@ export default async function PolicyDetail(props: {
             </table>
           </div>
         ) : null}
-        {header.status === 'bound' || claims.length === 0 ? (
+        {coverEnd <= header.termStart ? (
+          <p className="px-4 py-6 text-sm text-[var(--ink-soft)] border-t rule">
+            This policy was cancelled from inception, so no cover was ever in force and nothing can
+            be claimed against it.
+          </p>
+        ) : (
           <ClaimForm
             policyId={id}
             termStart={header.termStart}
             termEnd={header.termEnd}
+            coverEnd={coverEnd}
             insuredName={header.customerName}
           />
-        ) : null}
+        )}
       </section>
 
       <section className="card overflow-hidden">

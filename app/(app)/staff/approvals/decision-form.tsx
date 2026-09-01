@@ -31,9 +31,14 @@ export default function DecisionForm({ approvalId }: { approvalId: string }) {
         </p>
       ) : null}
       {state.notice ? (
-        <p className="text-sm text-[var(--good)] bg-[var(--good-soft)] rounded-md px-3 py-2">
-          {state.notice}
-        </p>
+        <div className="text-sm text-[var(--good)] bg-[var(--good-soft)] rounded-md px-3 py-2 space-y-2">
+          <p>{state.notice}</p>
+          {state.link ? (
+            <a href={state.link} target="_blank" rel="noreferrer" className="btn btn-ghost text-xs">
+              Open the payment link
+            </a>
+          ) : null}
+        </div>
       ) : null}
 
       <div className="flex gap-2">

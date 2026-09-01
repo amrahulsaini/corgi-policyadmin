@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { requireRole } from '@/lib/auth';
 import { decideApproval, SelfApprovalError } from '@/lib/approvals';
 
-export type DecisionState = { error: string | null; notice: string | null };
+export type DecisionState = { error: string | null; notice: string | null; link?: string | null };
 
 export async function decide(_prev: DecisionState, form: FormData): Promise<DecisionState> {
   const user = await requireRole('staff');
@@ -25,8 +25,9 @@ export async function decide(_prev: DecisionState, form: FormData): Promise<Deci
       error: null,
       notice:
         result.status === 'approved'
-          ? 'Approved and posted to the ledger.'
+          ? `Approved and posted to the ledger. ${result.settlementNote ?? ''}`.trim()
           : 'Rejected. Nothing was posted.',
+      link: result.checkoutUrl,
     };
   } catch (err) {
     if (err instanceof SelfApprovalError) {

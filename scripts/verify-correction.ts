@@ -33,6 +33,7 @@ async function main() {
   const rightDate = '2026-09-15';
 
   const endorsed = await applyEndorsement({
+    settleNow: false,
     policyId: policy.id,
     effectiveDate: wrongDate,
     limitMinor: minor('1000000.00'),

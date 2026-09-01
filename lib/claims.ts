@@ -24,6 +24,16 @@ export type ClaimPosition = {
   payeeProvider: string | null;
 };
 
+export async function coverEndsOn(policyId: string, termEnd: IsoDate): Promise<IsoDate> {
+  const [cancelled] = await sql<{ effective_date: string }[]>`
+    select effective_date::text from policy_versions
+     where policy_id = ${policyId}::uuid and kind = 'cancellation'
+     order by effective_date limit 1
+  `;
+  if (!cancelled) return termEnd;
+  return cancelled.effective_date < termEnd ? cancelled.effective_date : termEnd;
+}
+
 export async function openClaim(input: {
   policyId: string;
   lossDate: IsoDate;
@@ -36,9 +46,13 @@ export async function openClaim(input: {
   const header = await loadHeader(input.policyId);
   if (!header) throw new Error('policy not found');
 
-  if (input.lossDate < header.termStart || input.lossDate >= header.termEnd) {
+  const coverEnd = await coverEndsOn(input.policyId, header.termEnd);
+
+  if (input.lossDate < header.termStart || input.lossDate >= coverEnd) {
     throw new Error(
-      `a loss on ${input.lossDate} falls outside the term ${header.termStart} to ${header.termEnd}`,
+      coverEnd === header.termEnd
+        ? `a loss on ${input.lossDate} falls outside the term ${header.termStart} to ${header.termEnd}`
+        : `cover on this policy ran ${header.termStart} to ${coverEnd}, when it was cancelled. A loss on ${input.lossDate} is outside it. Losses before that date can still be claimed.`,
     );
   }
   if (input.reserveMinor <= 0n) throw new Error('an opening reserve must be positive');

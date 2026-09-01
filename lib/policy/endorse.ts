@@ -6,6 +6,7 @@ import { abs, type Minor } from '@/lib/money';
 import { dayCount, proRataDelta, type IsoDate } from '@/lib/premium';
 import { rate, type Exposure } from '@/lib/rating';
 import { surchargesFor, totalOf, type Surcharge } from '@/lib/tax';
+import { settleEndorsement, type EndorsementSettlement } from '@/lib/payments/endorsement';
 import { loadHeader } from './view';
 
 export type EndorseInput = {
@@ -16,6 +17,7 @@ export type EndorseInput = {
   exposures: Exposure[];
   description: string;
   actor: string;
+  settleNow?: boolean;
 };
 
 export type EndorsePricing = {
@@ -34,6 +36,7 @@ export type EndorseResult = {
   versionId: string;
   entryId: string;
   pricing: EndorsePricing;
+  settlement: EndorsementSettlement;
 };
 
 export async function priceEndorsement(
@@ -162,7 +165,31 @@ export async function applyEndorsement(input: EndorseInput): Promise<EndorseResu
     `;
   });
 
-  return { versionId, entryId, pricing };
+  const settlement =
+    input.settleNow === false
+      ? held(pricing)
+      : await settleEndorsement({
+          policyId: input.policyId,
+          versionId,
+          pricing,
+          effectiveDate: input.effectiveDate,
+          actor: input.actor,
+        });
+
+  return { versionId, entryId, pricing, settlement };
+}
+
+function held(pricing: EndorsePricing): EndorsementSettlement {
+  if (pricing.totalMinor === 0n) {
+    return { kind: 'none', note: 'This endorsement moved no money, so there is nothing to settle.' };
+  }
+  return {
+    kind: 'none',
+    note:
+      pricing.totalMinor > 0n
+        ? 'Left unsettled at your request. It stands as a receivable until someone raises the charge.'
+        : 'Left unsettled at your request. It stands as a refund payable until someone sends the money back.',
+  };
 }
 
 export function endorsementLines(pricing: EndorsePricing): Posting[] {

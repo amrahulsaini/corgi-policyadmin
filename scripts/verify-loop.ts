@@ -68,6 +68,7 @@ async function main() {
 
   head('2. ENDORSE AT A WRONG DATE, THEN CORRECT IT');
   const endorsed = await applyEndorsement({
+    settleNow: false,
     policyId: policy.id,
     effectiveDate: '2026-12-01',
     limitMinor: minor('2000000.00'),
