@@ -233,7 +233,9 @@ export default async function PolicyDetail(props: {
                             ? 'chip-good'
                             : c.status === 'failed'
                               ? 'chip-bad'
-                              : 'chip-warn'
+                              : c.status === 'voided'
+                                ? 'chip-mute'
+                                : 'chip-warn'
                         }`}
                       >
                         {c.status}

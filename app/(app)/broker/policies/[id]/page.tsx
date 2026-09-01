@@ -268,7 +268,9 @@ export default async function BrokerPolicyDetail(props: {
                             ? 'chip-good'
                             : c.status === 'refunded'
                               ? 'chip-warn'
-                              : 'chip-mute'
+                              : c.status === 'voided'
+                                ? 'chip-mute'
+                                : 'chip-warn'
                         }`}
                       >
                         {c.status}

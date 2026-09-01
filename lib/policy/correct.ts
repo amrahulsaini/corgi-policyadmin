@@ -3,6 +3,11 @@ import { post, reverse } from '@/lib/ledger/post';
 import { proRataDelta, type IsoDate } from '@/lib/premium';
 import { surchargesFor, totalOf } from '@/lib/tax';
 import { endorsementLines, type EndorsePricing } from './endorse';
+import {
+  settleEndorsement,
+  voidEndorsementCharge,
+  type EndorsementSettlement,
+} from '@/lib/payments/endorsement';
 import { loadHeader } from './view';
 import type { Exposure } from '@/lib/rating';
 
@@ -104,6 +109,8 @@ export type CorrectionResult = {
   reversalEntryId: string;
   rebookEntryId: string;
   preview: CorrectionPreview;
+  settlement: EndorsementSettlement;
+  voidNote: string;
 };
 
 export async function correctEndorsementDate(
@@ -243,5 +250,23 @@ export async function correctEndorsementDate(
     `;
   });
 
-  return { reversalVersionId, rebookVersionId, reversalEntryId, rebookEntryId, preview };
+  const voided = await voidEndorsementCharge(input.versionId);
+
+  const settlement = await settleEndorsement({
+    policyId: target.policy_id,
+    versionId: rebookVersionId,
+    pricing,
+    effectiveDate: input.correctedEffectiveDate,
+    actor: input.actor,
+  });
+
+  return {
+    reversalVersionId,
+    rebookVersionId,
+    reversalEntryId,
+    rebookEntryId,
+    preview,
+    settlement,
+    voidNote: voided.note,
+  };
 }

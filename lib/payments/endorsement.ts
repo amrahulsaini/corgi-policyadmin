@@ -42,6 +42,7 @@ async function raiseCharge(input: SettleInput): Promise<EndorsementSettlement> {
   const [existing] = await sql<{ checkout_ref: string; total_minor: bigint }[]>`
     select checkout_ref, total_minor from premium_charges
      where version_id = ${input.versionId}::uuid and reason = 'endorsement'
+       and charge_status(id) <> 'voided'
      limit 1
   `;
 
@@ -168,5 +169,43 @@ async function raiseRefund(input: SettleInput): Promise<EndorsementSettlement> {
     providerRef: providerRefund.id,
     totalMinor: refundable,
     note: `Stripe refund ${providerRefund.id} raised for ${format(refundable)}, status ${providerRefund.status}. Cash moves when the webhook settles it.${short}`,
+  };
+}
+
+export type VoidResult = { voided: boolean; note: string };
+
+export async function voidEndorsementCharge(versionId: string): Promise<VoidResult> {
+  const [charge] = await sql<{ id: string; checkout_ref: string; total_minor: bigint; status: string }[]>`
+    select id, checkout_ref, total_minor, charge_status(id) as status
+      from premium_charges
+     where version_id = ${versionId}::uuid and reason = 'endorsement'
+     limit 1
+  `;
+
+  if (!charge) return { voided: false, note: '' };
+
+  if (charge.status !== 'pending') {
+    return {
+      voided: false,
+      note: `The ${format(BigInt(charge.total_minor))} charge on the reversed version is already ${charge.status}, so it stays and the correction settles against it.`,
+    };
+  }
+
+  try {
+    await stripe.checkout.sessions.expire(charge.checkout_ref);
+  } catch {
+    void 0;
+  }
+
+  await sql`
+    insert into charge_events (charge_id, kind, amount_minor, provider_ref, detail)
+    values (${charge.id}::uuid, 'voided', ${charge.total_minor.toString()}::bigint,
+            ${charge.checkout_ref},
+            ${sql.json({ reason: 'the endorsement it was raised for was reversed' })}::jsonb)
+  `;
+
+  return {
+    voided: true,
+    note: `The unpaid ${format(BigInt(charge.total_minor))} checkout raised at the wrong date was expired at Stripe and voided here.`,
   };
 }

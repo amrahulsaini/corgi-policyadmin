@@ -133,7 +133,8 @@ export async function correct(_prev: ActionState, form: FormData): Promise<Actio
     revalidatePath(`/staff/policies/${policyId}`);
     return {
       error: null,
-      notice: `Corrected. The original entry stands untouched, a reversal was posted at ${result.preview.originalEffectiveDate}, and the re-book at ${result.preview.correctedEffectiveDate} moves premium by ${format(result.preview.differenceMinor)}.`,
+      notice: `Corrected. The original entry stands untouched, a reversal was posted at ${result.preview.originalEffectiveDate}, and the re-book at ${result.preview.correctedEffectiveDate} moves premium by ${format(result.preview.differenceMinor)}. ${result.voidNote} ${result.settlement.note}`.replace(/\s+/g, ' ').trim(),
+      link: result.settlement.kind === 'charge' ? result.settlement.checkoutUrl : null,
     };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Correction failed.', notice: null };
