@@ -120,134 +120,88 @@ export default async function PolicyDetail(props: {
         />
       </div>
 
-      <section className="card overflow-hidden">
-        <div className="px-4 py-3 border-b rule">
-          <h2 className="font-semibold text-sm">Premium layers</h2>
-          <p className="text-xs text-[var(--ink-soft)] mt-0.5">
-            Each change opens its own layer and earns across its own window. Nothing is ever
-            recalculated in place.
-          </p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="sheet">
-            <thead>
-              <tr>
-                <th>From</th>
-                <th>To</th>
-                <th className="text-right">Amount</th>
-                <th className="text-right">Days</th>
-                <th className="text-right">Earned at {asOf}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {view.layers.map((l, i) => (
-                <tr key={`${l.startsOn}-${i}`}>
-                  <td className="num">{l.startsOn}</td>
-                  <td className="num">{l.endsOn}</td>
-                  <td className="num text-right">{format(l.amountMinor)}</td>
-                  <td className="num text-right text-[var(--ink-soft)]">
-                    {dayCount(l.startsOn, l.endsOn)}
-                  </td>
-                  <td className="num text-right font-medium">
-                    {format(layerEarnedAsOf(l, asOf))}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="card overflow-hidden">
-        <div className="px-4 py-3 border-b rule">
-          <h2 className="font-semibold text-sm">Version history</h2>
-          <p className="text-xs text-[var(--ink-soft)] mt-0.5">
-            Effective date is when it took effect. Booked is when this system learned of it.
-          </p>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="sheet">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Kind</th>
-                <th>Effective</th>
-                <th>Booked</th>
-                <th className="text-right">Annual premium</th>
-                <th>Description</th>
-              </tr>
-            </thead>
-            <tbody>
-              {view.versions.map((v) => (
-                <tr key={v.id}>
-                  <td className="num">{v.versionNo}</td>
-                  <td>
-                    <span
-                      className={`chip ${
-                        v.kind === 'reversal' ? 'chip-bad' : v.kind === 'rebook' ? 'chip-warn' : 'chip-mute'
-                      }`}
-                    >
-                      {v.kind}
-                    </span>
-                  </td>
-                  <td className="num">{v.effectiveDate}</td>
-                  <td className="num text-[var(--ink-faint)]">{v.bookedAt.slice(0, 16)}</td>
-                  <td className="num text-right">{format(v.annualPremiumMinor)}</td>
-                  <td className="text-[var(--ink-soft)]">{v.description}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="card overflow-hidden">
-        <div className="px-4 py-3 border-b rule">
-          <h2 className="font-semibold text-sm">Payments</h2>
-        </div>
-        {charges.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-[var(--ink-soft)]">
-            No charge raised against this policy.
-          </p>
-        ) : (
+      <div className="grid xl:grid-cols-2 gap-6 items-start">
+        <section className="card overflow-hidden">
+          <div className="px-4 py-3 border-b rule">
+            <h2 className="font-semibold text-sm">Premium layers</h2>
+            <p className="text-xs text-[var(--ink-soft)] mt-0.5">
+              Each change opens its own layer and earns across its own window. Nothing is ever
+              recalculated in place.
+            </p>
+          </div>
           <div className="overflow-x-auto">
             <table className="sheet">
               <thead>
                 <tr>
-                  <th>Reason</th>
-                  <th>Effective</th>
+                  <th>From</th>
+                  <th>To</th>
                   <th className="text-right">Amount</th>
-                  <th>Status</th>
+                  <th className="text-right">Days</th>
+                  <th className="text-right">Earned at {asOf}</th>
                 </tr>
               </thead>
               <tbody>
-                {charges.map((c) => (
-                  <tr key={c.id}>
-                    <td>{c.reason}</td>
-                    <td className="num">{c.effective_date}</td>
-                    <td className="num text-right">{format(BigInt(c.total_minor))}</td>
-                    <td>
-                      <span
-                        className={`chip ${
-                          c.status === 'paid'
-                            ? 'chip-good'
-                            : c.status === 'failed'
-                              ? 'chip-bad'
-                              : c.status === 'voided'
-                                ? 'chip-mute'
-                                : 'chip-warn'
-                        }`}
-                      >
-                        {c.status}
-                      </span>
+                {view.layers.map((l, i) => (
+                  <tr key={`${l.startsOn}-${i}`}>
+                    <td className="num">{l.startsOn}</td>
+                    <td className="num">{l.endsOn}</td>
+                    <td className="num text-right">{format(l.amountMinor)}</td>
+                    <td className="num text-right text-[var(--ink-soft)]">
+                      {dayCount(l.startsOn, l.endsOn)}
+                    </td>
+                    <td className="num text-right font-medium">
+                      {format(layerEarnedAsOf(l, asOf))}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
-      </section>
+        </section>
+
+        <section className="card overflow-hidden">
+          <div className="px-4 py-3 border-b rule">
+            <h2 className="font-semibold text-sm">Version history</h2>
+            <p className="text-xs text-[var(--ink-soft)] mt-0.5">
+              Effective date is when it took effect. Booked is when this system learned of it.
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="sheet">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Kind</th>
+                  <th>Effective</th>
+                  <th>Booked</th>
+                  <th className="text-right">Annual premium</th>
+                  <th>Description</th>
+                </tr>
+              </thead>
+              <tbody>
+                {view.versions.map((v) => (
+                  <tr key={v.id}>
+                    <td className="num">{v.versionNo}</td>
+                    <td>
+                      <span
+                        className={`chip ${
+                          v.kind === 'reversal' ? 'chip-bad' : v.kind === 'rebook' ? 'chip-warn' : 'chip-mute'
+                        }`}
+                      >
+                        {v.kind}
+                      </span>
+                    </td>
+                    <td className="num">{v.effectiveDate}</td>
+                    <td className="num text-[var(--ink-faint)]">{v.bookedAt.slice(0, 16)}</td>
+                    <td className="num text-right">{format(v.annualPremiumMinor)}</td>
+                    <td className="text-[var(--ink-soft)]">{v.description}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
 
       {header.status === 'bound' ? (
         <>
@@ -367,27 +321,77 @@ export default async function PolicyDetail(props: {
         )}
       </section>
 
-      <section className="card overflow-hidden">
-        <div className="px-4 py-3 border-b rule">
-          <h2 className="font-semibold text-sm">Documents</h2>
-          <p className="text-xs text-[var(--ink-soft)] mt-0.5">
-            Generated from the ledger at the date you choose, never transcribed.
-          </p>
-        </div>
-        <div className="px-4 py-4 flex flex-wrap items-center gap-3">
-          <a
-            href={`/api/documents/declarations/${id}?asOf=${asOf}`}
-            className="btn btn-ghost text-sm"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Declarations page as at {asOf}
-          </a>
-          <span className="text-xs text-[var(--ink-soft)]">
-            Change the as-of date above and the document changes with it.
-          </span>
-        </div>
-      </section>
+      <div className="grid xl:grid-cols-2 gap-6 items-start">
+        <section className="card overflow-hidden">
+          <div className="px-4 py-3 border-b rule">
+            <h2 className="font-semibold text-sm">Payments</h2>
+          </div>
+          {charges.length === 0 ? (
+            <p className="px-4 py-8 text-center text-sm text-[var(--ink-soft)]">
+              No charge raised against this policy.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="sheet">
+                <thead>
+                  <tr>
+                    <th>Reason</th>
+                    <th>Effective</th>
+                    <th className="text-right">Amount</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {charges.map((c) => (
+                    <tr key={c.id}>
+                      <td>{c.reason}</td>
+                      <td className="num">{c.effective_date}</td>
+                      <td className="num text-right">{format(BigInt(c.total_minor))}</td>
+                      <td>
+                        <span
+                          className={`chip ${
+                            c.status === 'paid'
+                              ? 'chip-good'
+                              : c.status === 'failed'
+                                ? 'chip-bad'
+                                : c.status === 'voided'
+                                  ? 'chip-mute'
+                                  : 'chip-warn'
+                          }`}
+                        >
+                          {c.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <section className="card overflow-hidden">
+          <div className="px-4 py-3 border-b rule">
+            <h2 className="font-semibold text-sm">Documents</h2>
+            <p className="text-xs text-[var(--ink-soft)] mt-0.5">
+              Generated from the ledger at the date you choose, never transcribed.
+            </p>
+          </div>
+          <div className="px-4 py-4 flex flex-wrap items-center gap-3">
+            <a
+              href={`/api/documents/declarations/${id}?asOf=${asOf}`}
+              className="btn btn-ghost text-sm"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Declarations page as at {asOf}
+            </a>
+            <span className="text-xs text-[var(--ink-soft)]">
+              Change the as-of date above and the document changes with it.
+            </span>
+          </div>
+        </section>
+      </div>
 
       <section className="card overflow-hidden">
         <div className="px-4 py-3 border-b rule">

@@ -59,7 +59,7 @@ export default function QuoteForm({
   }, [insured, newState, termStart, limit, deductible, vehicles, squareFeet]);
 
   return (
-    <div className="grid lg:grid-cols-[minmax(0,1fr)_360px] gap-6 items-start">
+    <div className="grid lg:grid-cols-[minmax(0,1fr)_400px] xl:grid-cols-[minmax(0,1fr)_460px] gap-6 items-start">
       <form action={action} className="card p-5 space-y-5">
       <div>
         <label htmlFor="customerId" className="block text-xs font-semibold mb-1.5">
